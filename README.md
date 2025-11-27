@@ -38,7 +38,7 @@ Dette verktøyet er utviklet som et privat hjelpemiddel og deles "som det er" (o
 
 ## 🛠️ For utviklere
 Vil du kjøre denne lokalt eller bidra?
-Koden er skrevet i Python ved hjelp av [Streamlit](https://streamlit.io).
+Koden er skrevet i Python ved hjelp av [Streamlit](https://karbo-robot-scqkaigsbowcy87ijqczdy.streamlit.app/).
 
 1.  Klone repoet:
     ```bash
