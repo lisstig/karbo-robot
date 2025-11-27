@@ -110,7 +110,6 @@ if df is not None:
             if pd.notna(vekt_stk_db) and vekt_stk_db > 0:
                 enhet = st.radio("Enhet", ["Gram", f"Stk ({int(vekt_stk_db)}g)"], horizontal=True)
                 if "Stk" in enhet:
-                    # HER ER ENDRINGEN: step=1.0
                     antall = st.number_input("Antall stk:", value=1.0, step=1.0)
                     mengde_i_gram = antall * vekt_stk_db
                     beskrivelse_mengde = f"{antall} stk"
@@ -124,14 +123,16 @@ if df is not None:
                 beskrivelse_mengde = f"{mengde_i_gram} g"
 
                 with st.expander("🔢 Har du hele pakken?"):
+                    # Vekt starter TOMT (best for å skrive)
                     pk_vekt = st.number_input("Totalvekt pakke (g):", min_value=0, value=None, step=1, placeholder="F.eks 600")
-                    pk_ant = st.number_input("Antall i pakke:", min_value=1, value=None, step=1, placeholder="F.eks 10")
+                    
+                    # Antall starter på 1 (slik at knappene virker!)
+                    pk_ant = st.number_input("Antall i pakke:", min_value=1, value=1, step=1)
                     
                     if pk_vekt and pk_ant:
                         stk_vekt = pk_vekt / pk_ant
                         st.success(f"1 stk veier ca **{stk_vekt:.0f} g**")
                         
-                        # HER ER ENDRINGEN: step=1.0
                         ant_spist = st.number_input("Antall spist:", value=1.0, step=1.0)
                         
                         mengde_i_gram = ant_spist * stk_vekt
