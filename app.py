@@ -1,8 +1,13 @@
 import streamlit as st
 import pandas as pd
 
-# --- KONFIGURASJON ---
-st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
+# --- KONFIGURASJON & SØKEORD ---
+# Her legger vi inn nøkkelord i tittelen så Google lettere finner den
+st.set_page_config(
+    page_title="Karbo-Robot: Norsk Karbokalkulator for Diabetes Type 1", 
+    page_icon="🍖",
+    layout="centered"
+)
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
@@ -16,7 +21,7 @@ if st.session_state['kurv']:
     total_karbo_kurv = sum(item['karbo'] for item in st.session_state['kurv'])
     st.info(f"🛒 Du har **{antall_varer}** ting i kurven. Total: **{total_karbo_kurv:.1f} g**")
 
-# --- SIDEBAR ---
+# --- SIDEBAR (Meny & Hjelp) ---
 with st.sidebar:
     st.header("Innstillinger")
     
@@ -29,14 +34,28 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.header("ℹ️ Om dataene")
-    st.markdown("""
-    **Kilder:**
-    * 🥗 **Næringsinnhold:** [Matvaretabellen.no](https://www.matvaretabellen.no).
-    * ⚖️ **Vekt:** Produsentinfo (Gilde, Hatting, etc.).
-    * 🔥 **BBQ:** Egne beregninger.
-    """)
-    st.caption("Laget for MiniMed 780G")
+    
+    # --- NYTT: BRUKSANVISNING ---
+    with st.expander("❓ Slik bruker du appen"):
+        st.markdown("""
+        1. **Søk** etter matvare (f.eks "Pølse").
+        2. Velg **antall** eller **gram**.
+        3. Mangler du vekt? Bruk **Pakke-kalkulatoren** som dukker opp.
+        4. Trykk **"Legg til i måltidet"**.
+        5. Gjenta for alle matvarer (f.eks brød, drikke).
+        6. Se **totalsummen** nederst og legg inn i pumpa.
+        """)
+
+    # --- OM DATAENE ---
+    with st.expander("ℹ️ Om dataene"):
+        st.markdown("""
+        **Kilder:**
+        * 🥗 **Næringsinnhold:** [Matvaretabellen.no](https://www.matvaretabellen.no).
+        * ⚖️ **Vekt:** Produsentinfo (Gilde, Hatting, etc.).
+        * 🔥 **BBQ:** Egne beregninger.
+        
+        *Laget for MiniMed 780G.*
+        """)
 
 # --- LASTE DATA ---
 @st.cache_data
@@ -123,10 +142,7 @@ if df is not None:
                 beskrivelse_mengde = f"{mengde_i_gram} g"
 
                 with st.expander("🔢 Har du hele pakken?"):
-                    # Vekt starter TOMT (best for å skrive)
                     pk_vekt = st.number_input("Totalvekt pakke (g):", min_value=0, value=None, step=1, placeholder="F.eks 600")
-                    
-                    # Antall starter på 1 (slik at knappene virker!)
                     pk_ant = st.number_input("Antall i pakke:", min_value=1, value=1, step=1)
                     
                     if pk_vekt and pk_ant:
