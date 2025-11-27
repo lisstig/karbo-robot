@@ -21,7 +21,7 @@ if st.session_state['kurv']:
     total_karbo_kurv = sum(item['karbo'] for item in st.session_state['kurv'])
     st.info(f"🛒 Du har **{antall_varer}** ting i kurven. Total: **{total_karbo_kurv:.1f} g**")
 
-# --- SIDEBAR (Meny & Hjelp) ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.header("Innstillinger")
     
@@ -35,24 +35,34 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # --- NYTT: BRUKSANVISNING ---
+    # --- KONTAKT (Google Forms) ---
+    with st.expander("💬 Kontakt / Feilmelding"):
+        st.write("Fant du en feil, eller savner du en pølsetype? Si fra!")
+        
+        # Her limer du inn linken du kopierte fra Google Forms!
+        url_skjema = "LIM_INN_GOOGLE_FORMS_LINK_HER" 
+        
+        st.link_button("✍️ Åpne tilbakemeldingsskjema", url_skjema)
+        
+        st.caption("Du kan være helt anonym.")
+
+    # --- BRUKSANVISNING ---
     with st.expander("❓ Slik bruker du appen"):
         st.markdown("""
-        1. **Søk** etter matvare (f.eks "Pølse").
+        1. **Søk** etter matvare.
         2. Velg **antall** eller **gram**.
-        3. Mangler du vekt? Bruk **Pakke-kalkulatoren** som dukker opp.
+        3. Mangler du vekt? Bruk **Pakke-kalkulatoren**.
         4. Trykk **"Legg til i måltidet"**.
-        5. Gjenta for alle matvarer (f.eks brød, drikke).
-        6. Se **totalsummen** nederst og legg inn i pumpa.
+        5. Se **totalsummen** nederst.
         """)
 
     # --- OM DATAENE ---
     with st.expander("ℹ️ Om dataene"):
         st.markdown("""
         **Kilder:**
-        * 🥗 **Næringsinnhold:** [Matvaretabellen.no](https://www.matvaretabellen.no).
-        * ⚖️ **Vekt:** Produsentinfo (Gilde, Hatting, etc.).
-        * 🔥 **BBQ:** Egne beregninger.
+        * 🥗 [Matvaretabellen.no](https://www.matvaretabellen.no)
+        * ⚖️ Produsentinfo (Gilde, Hatting, etc.)
+        * 🔥 Egne BBQ-beregninger
         
         *Laget for MiniMed 780G.*
         """)
