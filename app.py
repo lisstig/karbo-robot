@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 
 # --- KONFIGURASJON ---
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
@@ -20,55 +19,40 @@ def last_data():
         # Les filen
         df = pd.read_excel("matvarer.xlsx")
         
-        # 1. RENSK OPP I KOLONNENAVN
+        # 1. RENSK OPP I KOLONNENAVN (Gjør alt til små bokstaver)
         df.columns = [str(c).lower().strip() for c in df.columns]
 
         # 2. IDENTIFISER VIKTIGE KOLONNER
-        navn_col = next((c for c in df.columns if "matvare" in c and "id" not in c and "gruppe" not in c), None)
+        # Nå ser vi etter 'kategori' også!
+        navn_col = next((c for c in df.columns if "matvare" in c and "id" not in c), None)
         karbo_col = next((c for c in df.columns if "karbo" in c), None)
-        id_col = next((c for c in df.columns if "id" in c), None) # Matvare ID
+        
+        # Sjekker om vi finner en kolonne som heter "kategori" eller "gruppe"
+        gruppe_col = next((c for c in df.columns if "kategori" in c or "gruppe" in c), None)
 
-        if navn_col and karbo_col:
+        if navn_col and karbo_col and gruppe_col:
             
-            # 3. FIX KATEGORIER
-            if id_col:
-                df['kategori'] = None
-                
-                # --- FORBEDRET LOGIKK FOR Å FINNE OVERSKRIFTER ---
-                # Vi tvinger ID til å være numerisk. Alt som ikke er tall (tekst, tomme felt, mellomrom) blir NaN
-                id_numeric = pd.to_numeric(df[id_col], errors='coerce')
-                
-                # Hvis ID mangler (er NaN), antar vi det er en Kategori-overskrift
-                mask_kategori = id_numeric.isna()
-                
-                # Kopier navnet over til kategori-kolonnen
-                df.loc[mask_kategori, 'kategori'] = df.loc[mask_kategori, navn_col]
-                
-                # Fyll nedover (Adzukibønner arver kategorien over seg)
-                df['kategori'] = df['kategori'].ffill()
-                
-                # Fjern radene som bare er overskrifter
-                df = df[~mask_kategori].copy()
-                
-                # Hvis kategorier fortsatt er tomme (f.eks hvis første rad var data), sett en standard
-                df['kategori'] = df['kategori'].fillna("Diverse")
-            else:
-                df['kategori'] = "Alle varer"
-
-            # 4. FERDIGSTILLING
-            df = df.rename(columns={navn_col: 'Matvare', karbo_col: 'Karbo_g', 'kategori': 'Matvaregruppe'})
-            df = df[['Matvare', 'Matvaregruppe', 'Karbo_g']]
+            # 3. VELG UT DATA
+            # Nå trenger vi ikke masse logikk, vi bare henter kolonnene
+            df = df[[navn_col, gruppe_col, karbo_col]].copy()
+            
+            # 4. STANDARDISERING
+            df.columns = ['Matvare', 'Matvaregruppe', 'Karbo_g']
+            
+            # Rydd opp i kategorinavnene (noen ganger henger det med tomme celler)
+            df['Matvaregruppe'] = df['Matvaregruppe'].fillna("Diverse")
             
             # Sikre at Karbo er tall
             df['Karbo_g'] = pd.to_numeric(df['Karbo_g'], errors='coerce').fillna(0)
             
             return df
         else:
-            st.error(f"Fant ikke riktige kolonner. Fant disse: {df.columns.tolist()}")
+            # Feilmelding hvis den ikke finner den nye kolonnen din
+            st.error(f"Fant ikke alle kolonner. Jeg ser etter 'Matvare', 'Karbohydrat' og 'Kategori'. Fant disse: {df.columns.tolist()}")
             return None
 
     except FileNotFoundError:
-        st.warning("⚠️ Finner ikke 'matvarer.xlsx'.")
+        st.warning("⚠️ Finner ikke 'matvarer.xlsx'. Husk å laste opp den nye filen til GitHub!")
         return None
     except Exception as e:
         st.error(f"Noe gikk galt: {e}")
@@ -78,12 +62,13 @@ df = last_data()
 
 # --- BRUKERGRENSESNITT ---
 if df is not None:
-    # Kategori-filter
+    # 1. KATEGORI-VELGER
+    # Hent unike kategorier og sorter dem alfabetisk
     unike_kat = sorted([str(k) for k in df['Matvaregruppe'].unique() if k is not None])
     
-    # UI Layout
     valgt_kat = st.selectbox("Velg kategori:", ["Alle"] + unike_kat)
 
+    # Filtrer tabellen basert på valg
     if valgt_kat != "Alle":
         df_visning = df[df['Matvaregruppe'] == valgt_kat]
     else:
@@ -91,14 +76,16 @@ if df is not None:
 
     st.subheader("🔍 Finn matvare")
 
-    # Søkefelt
+    # 2. SØKEFELT
     matvarer = sorted(df_visning['Matvare'].astype(str).unique())
     valgt_mat = st.selectbox("Søk:", matvarer)
 
     if valgt_mat:
+        # Hent tallene
         rad = df[df['Matvare'] == valgt_mat].iloc[0]
         karbo_100 = rad['Karbo_g']
 
+        # 3. VISNING OG KALKULATOR
         c1, c2 = st.columns(2)
         with c1:
             st.metric("Karbo pr 100g", f"{karbo_100:.1f}")
@@ -107,7 +94,7 @@ if df is not None:
         
         tot_mat = (mengde / 100) * karbo_100
 
-        # BBQ-seksjon
+        # 4. BBQ-SEKSJON
         st.markdown("---")
         with st.expander("🔥 BBQ & Saus"):
             bbq = st.checkbox("Legg til saus/glaze")
@@ -117,16 +104,8 @@ if df is not None:
                 tot_saus = (g_saus/100)*35
                 st.caption(f"+ {tot_saus:.1f} g karbo")
         
-        # Totalsum
+        # 5. TOTAL
         total = tot_mat + tot_saus
         st.markdown("---")
         st.subheader("Til Pumpa (KH):")
         st.title(f"{total:.1f} g")
-
-    # --- DEBUG VERKTØY (Kun synlig nederst) ---
-    st.markdown("---")
-    with st.expander("🛠️ Se rådata (For feilsøking)"):
-        st.write("Her er de 10 første radene appen ser:")
-        st.dataframe(df.head(10))
-        st.write(f"Antall kategorier funnet: {len(unike_kat)}")
-        st.write(unike_kat)
