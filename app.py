@@ -17,17 +17,35 @@ if st.session_state['kurv']:
     total_karbo_kurv = sum(item['karbo'] for item in st.session_state['kurv'])
     st.info(f"🛒 Du har **{antall_varer}** ting i kurven. Total: **{total_karbo_kurv:.1f} g**")
 
-# --- KNAPP FOR Å NULLSTILLE ---
+# --- SIDEBAR (Meny) ---
 with st.sidebar:
     st.header("Innstillinger")
+    
+    # Nullstill-knappen
     if st.button("🗑️ Tøm hele kurven"):
         st.session_state['kurv'] = []
         st.rerun()
     
-    st.markdown("---")
-    if st.button("🔄 Oppdater data fra Excel"):
+    # Oppdater-knappen
+    if st.button("🔄 Oppdater data"):
         st.cache_data.clear()
         st.rerun()
+
+    st.markdown("---")
+    
+    # --- OM DATAENE ---
+    st.header("ℹ️ Om dataene")
+    st.markdown("""
+    **Kilder:**
+    * 🥗 **Næringsinnhold:** Hentet fra [Matvaretabellen.no](https://www.matvaretabellen.no) (Mattilsynet).
+    * ⚖️ **Vekt:** Basert på *"Mål og vekt for matvarer"* og produsentinformasjon (Gilde, Hatting, etc.).
+    * 🔥 **BBQ:** Egne beregninger basert på typiske BBQ-sauser.
+    
+    **Ansvarsfraskrivelse:**
+    Appen er et hjelpemiddel. Sjekk alltid emballasjen hvis du er usikker.
+    """)
+    
+    st.caption("Laget av deg for MiniMed 780G")
 
 # --- LASTE DATA ---
 @st.cache_data
