@@ -40,7 +40,7 @@ with st.sidebar:
         st.write("Fant du en feil, eller savner du en pølsetype? Si fra!")
         
         # Her limer du inn linken du kopierte fra Google Forms!
-        url_skjema = https://forms.gle/xn1RnNAgcr1frzhr8
+        url_skjema = "https://forms.gle/xn1RnNAgcr1frzhr8"
         
         st.link_button("✍️ Åpne tilbakemeldingsskjema", url_skjema)
         
