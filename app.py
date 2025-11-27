@@ -4,48 +4,39 @@ import pandas as pd
 # --- KONFIGURASJON ---
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
-# --- INITIALISER HUKOMMELSE (Session State) ---
-# Dette gjør at appen husker hva du har lagt i kurven
+# --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
     st.session_state['kurv'] = []
 
 # --- TITTEL ---
 st.title("🤖 Karbo-Robot")
-# Vis en liten oppsummering øverst hvis kurven ikke er tom
+
 if st.session_state['kurv']:
     antall_varer = len(st.session_state['kurv'])
     total_karbo_kurv = sum(item['karbo'] for item in st.session_state['kurv'])
     st.info(f"🛒 Du har **{antall_varer}** ting i kurven. Total: **{total_karbo_kurv:.1f} g**")
 
-# --- SIDEBAR (Meny) ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.header("Innstillinger")
     
-    # Nullstill-knappen
     if st.button("🗑️ Tøm hele kurven"):
         st.session_state['kurv'] = []
         st.rerun()
     
-    # Oppdater-knappen
     if st.button("🔄 Oppdater data"):
         st.cache_data.clear()
         st.rerun()
 
     st.markdown("---")
-    
-    # --- OM DATAENE ---
     st.header("ℹ️ Om dataene")
     st.markdown("""
     **Kilder:**
-    * 🥗 **Næringsinnhold:** Hentet fra [Matvaretabellen.no](https://www.matvaretabellen.no) (Mattilsynet).
-    * ⚖️ **Vekt:** Basert på *"Mål og vekt for matvarer"* og produsentinformasjon (Gilde, Hatting, etc.).
-    * 🔥 **BBQ:** Egne beregninger basert på typiske BBQ-sauser.
-    
-    **Ansvarsfraskrivelse:**
-    Appen er et hjelpemiddel. Sjekk alltid emballasjen hvis du er usikker.
+    * 🥗 **Næringsinnhold:** [Matvaretabellen.no](https://www.matvaretabellen.no).
+    * ⚖️ **Vekt:** Produsentinfo (Gilde, Hatting, etc.).
+    * 🔥 **BBQ:** Egne beregninger.
     """)
-    
-    st.caption("Laget av deg for MiniMed 780G")
+    st.caption("Laget for MiniMed 780G")
 
 # --- LASTE DATA ---
 @st.cache_data
@@ -54,7 +45,6 @@ def last_data():
         df = pd.read_excel("matvarer.xlsx")
         df.columns = [str(c).lower().strip() for c in df.columns]
 
-        # Identifiser kolonner
         navn_col = next((c for c in df.columns if "matvare" in c and "id" not in c), None)
         karbo_col = next((c for c in df.columns if "karbo" in c), None)
         gruppe_col = next((c for c in df.columns if "kategori" in c or "gruppe" in c), None)
@@ -87,9 +77,9 @@ def last_data():
 
 df = last_data()
 
-# --- APP UI: VELG MATVARE ---
+# --- APP UI ---
 if df is not None:
-    # 1. KATEGORI FILTER
+    # 1. KATEGORI
     unike_kat = sorted([str(k) for k in df['Matvaregruppe'].unique() if k is not None])
     valgt_kat = st.selectbox("Velg kategori (valgfritt):", ["Alle"] + unike_kat)
 
@@ -100,11 +90,10 @@ if df is not None:
 
     st.subheader("🔍 Finn matvare")
 
-    # 2. SØKEFELT
+    # 2. SØK
     matvarer = sorted(df_visning['Matvare'].astype(str).unique())
     valgt_mat = st.selectbox("Søk:", matvarer, index=None, placeholder="Skriv for å søke...")
 
-    # --- HVIS NOE ER VALGT: VIS KALKULATOR ---
     if valgt_mat:
         rad = df[df['Matvare'] == valgt_mat].iloc[0]
         karbo_100 = rad['Karbo_g']
@@ -113,10 +102,7 @@ if df is not None:
 
         st.caption(f"Kategori: {kategori} | Karbo: {karbo_100}g pr 100g")
 
-        # --- MENGDEBEREGNING ---
         c1, c2 = st.columns(2)
-        
-        # Variabel for å holde styr på hva vi beregner
         beskrivelse_mengde = "" 
         
         with c1:
@@ -124,7 +110,8 @@ if df is not None:
             if pd.notna(vekt_stk_db) and vekt_stk_db > 0:
                 enhet = st.radio("Enhet", ["Gram", f"Stk ({int(vekt_stk_db)}g)"], horizontal=True)
                 if "Stk" in enhet:
-                    antall = st.number_input("Antall stk:", value=1.0, step=0.5)
+                    # HER ER ENDRINGEN: step=1.0
+                    antall = st.number_input("Antall stk:", value=1.0, step=1.0)
                     mengde_i_gram = antall * vekt_stk_db
                     beskrivelse_mengde = f"{antall} stk"
                 else:
@@ -136,18 +123,20 @@ if df is not None:
                 mengde_i_gram = st.number_input("Mengde (g):", value=100, step=10)
                 beskrivelse_mengde = f"{mengde_i_gram} g"
 
-                # Pakkehjelp
                 with st.expander("🔢 Har du hele pakken?"):
-                    pk_vekt = st.number_input("Totalvekt pakke (g):", 0)
-                    pk_ant = st.number_input("Antall i pakke:", 1)
-                    if pk_vekt > 0:
+                    pk_vekt = st.number_input("Totalvekt pakke (g):", min_value=0, value=None, step=1, placeholder="F.eks 600")
+                    pk_ant = st.number_input("Antall i pakke:", min_value=1, value=None, step=1, placeholder="F.eks 10")
+                    
+                    if pk_vekt and pk_ant:
                         stk_vekt = pk_vekt / pk_ant
-                        st.write(f"1 stk = {stk_vekt:.0f} g")
-                        ant_spist = st.number_input("Antall spist:", 1.0, step=0.5)
+                        st.success(f"1 stk veier ca **{stk_vekt:.0f} g**")
+                        
+                        # HER ER ENDRINGEN: step=1.0
+                        ant_spist = st.number_input("Antall spist:", value=1.0, step=1.0)
+                        
                         mengde_i_gram = ant_spist * stk_vekt
                         beskrivelse_mengde = f"{ant_spist} stk (fra pakke)"
-
-        # --- SAUS / BBQ TILLEGG ---
+        
         with c2:
             st.write("🔥 **BBQ / Saus**")
             bbq_aktiv = st.checkbox("Legg til saus?")
@@ -157,15 +146,12 @@ if df is not None:
                 tillegg_karbo = (g_saus/100)*35
                 beskrivelse_mengde += f" + {g_saus}g saus"
 
-        # --- BEREGN LINJESUM ---
         mat_karbo = (mengde_i_gram / 100) * karbo_100
         total_linje = mat_karbo + tillegg_karbo
         
         st.markdown(f"### = {total_linje:.1f} g karbo")
 
-        # --- KNAPP: LEGG I KURV ---
         if st.button("➕ Legg til i måltidet", type="primary"):
-            # Lagre det vi har funnet ut i en liste
             nytt_element = {
                 "navn": valgt_mat,
                 "beskrivelse": beskrivelse_mengde,
@@ -173,22 +159,15 @@ if df is not None:
             }
             st.session_state['kurv'].append(nytt_element)
             st.success(f"La til {valgt_mat}!")
-            # Vi trenger ikke rerun her, for Streamlit oppdaterer UI automatisk ved neste interaksjon,
-            # men for at tabellen under skal oppdatere seg med en gang:
             st.rerun()
 
-    # --- VIS KURVEN (MÅLTIDET) ---
     st.markdown("---")
     st.header("🍽️ Dagens Måltid")
 
     if st.session_state['kurv']:
-        # Lag en fin tabell av kurven
         kurv_df = pd.DataFrame(st.session_state['kurv'])
-        
-        # Vis tabellen (vi skjuler indeksen for pent utseende)
         st.table(kurv_df[['navn', 'beskrivelse', 'karbo']])
         
-        # BEREGN TOTALSUM
         total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
         
         st.markdown("---")
@@ -198,7 +177,6 @@ if df is not None:
         with col_res2:
             st.title(f"{total_sum:.1f} g")
             
-        # Knapp for å angre siste
         if st.button("Angre siste"):
             st.session_state['kurv'].pop()
             st.rerun()
