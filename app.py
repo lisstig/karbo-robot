@@ -4,105 +4,90 @@ import pandas as pd
 # --- KONFIGURASJON ---
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
-# --- DATA (Mock database - dette bytter vi ut med API senere) ---
-# Struktur: Navn, Karbo per 100g, Standard vekt per stykk (hvis aktuelt)
-# --- DATA (Utvidet liste for hverdagsmiddager) ---
-matvare_data = {
-    # --- BASISVARER (Middag) ---
-    'Potet (kokt)': {'karbo_100g': 17, 'vekt_stk': 85},
-    'Potetmos (hjemmelaget m/melk)': {'karbo_100g': 15, 'vekt_stk': 150}, # En porsjon
-    'Pommes Frites (ovnsstekt)': {'karbo_100g': 32, 'vekt_stk': None},
-    'Ris, hvit (kokt)': {'karbo_100g': 28, 'vekt_stk': 150}, # En porsjon
-    'Pasta/Spaghetti (kokt)': {'karbo_100g': 30, 'vekt_stk': 150}, # En porsjon
-    'Søtpotet (bakt)': {'karbo_100g': 20, 'vekt_stk': 150},
-
-    # --- GRØNNSAKER & TILBEHØR ---
-    'Gulrot (kokt)': {'karbo_100g': 6.5, 'vekt_stk': 70},
-    'Brokkoli/Blomkål': {'karbo_100g': 2, 'vekt_stk': None}, # Veldig lite, men greit å ha
-    'Erter (grønne, fryst)': {'karbo_100g': 7, 'vekt_stk': None},
-    'Maiskorn (hermetisk)': {'karbo_100g': 16, 'vekt_stk': None},
-    'Tyttebærsyltetøy': {'karbo_100g': 40, 'vekt_stk': 20}, # En spiseskje
-    'Brun saus (jevnet m/hvetemel)': {'karbo_100g': 6, 'vekt_stk': 50}, # En øse
-    'Ketchup': {'karbo_100g': 24, 'vekt_stk': 15},
-
-    # --- BRØD & BAKST ---
-    'Brødskive (Grovt/Kneipp)': {'karbo_100g': 40, 'vekt_stk': 40},
-    'Knekkebrød (Wasa Husman)': {'karbo_100g': 60, 'vekt_stk': 13},
-    'Pølsebrød (Vanlig)': {'karbo_100g': 51, 'vekt_stk': 27},
-    'Lompe': {'karbo_100g': 38, 'vekt_stk': 25},
-    'Hamburgerbrød (Grovt)': {'karbo_100g': 45, 'vekt_stk': 60},
-    'Tortilla (Hvete, medium)': {'karbo_100g': 54, 'vekt_stk': 40},
-
-    # --- KJØTTPRODUKTER (Med karbo) ---
-    'Grillpølse (Gilde)': {'karbo_100g': 4.5, 'vekt_stk': 50},
-    'Kjøttkaker (Ferdige)': {'karbo_100g': 8, 'vekt_stk': 50},
-    'Fiskekaker': {'karbo_100g': 10, 'vekt_stk': 60},
-    
-    # --- BBQ SPECIALS (Dine favoritter) ---
-    'Coleslaw (Ferdigkjøpt)': {'karbo_100g': 10, 'vekt_stk': None},
-    'Maiskolbe (kokt)': {'karbo_100g': 18, 'vekt_stk': 200}, # Ca vekt spiselig del
-}
-
-# --- TITTEL ---
 st.title("🤖 Karbo-Robot")
 st.caption("Din smarte karbo-kalkulator")
 
-# --- SIDEBAR: FAVORITTER ---
-with st.sidebar:
-    st.header("⭐ Mine Favoritter")
-    st.write("Her kan du legge hurtigknapper senere.")
-    if st.button("Kjapp Frokost (2 brød m/ost)"):
-        st.session_state['resultat'] = 30 # Eksempelverdi
+# --- LASTE DATA ---
+@st.cache_data
+def last_data():
+    try:
+        # Prøver å lese Excel-filen
+        df = pd.read_excel("matvarer.xlsx")
+        
+        # Vi må rydde litt i kolonnenavnene siden Matvaretabellen kan variere
+        # Vi ser etter en kolonne som heter noe med "Karbohydrat"
+        alle_kolonner = df.columns.tolist()
+        karbo_kolonne = next((k for k in alle_kolonner if "Karbohydrat" in k), None)
+        
+        if karbo_kolonne:
+            # Lager en forenklet versjon av tabellen med bare det vi trenger
+            df = df[['Matvare', 'Matvaregruppe', karbo_kolonne]].copy()
+            df.rename(columns={karbo_kolonne: 'Karbo_g'}, inplace=True)
+            return df
+        else:
+            st.error("Fant ingen kolonne med 'Karbohydrat' i Excel-filen.")
+            return None
+            
+    except FileNotFoundError:
+        st.warning("⚠️ Finner ikke 'matvarer.xlsx'. Har du lastet den opp?")
+        # Fallback-data (så appen ikke kræsjer før du får lastet opp filen)
+        data = {
+            'Matvare': ['Test-pølse (mangler fil)', 'Test-brød (mangler fil)'],
+            'Matvaregruppe': ['Kjøtt', 'Brødmat'],
+            'Karbo_g': [5, 45]
+        }
+        return pd.DataFrame(data)
+
+df = last_data()
 
 # --- HOVEDKALKULATOR ---
-st.subheader("🔍 Hva spiser du?")
+if df is not None:
+    st.subheader("🔍 Finn matvare")
 
-# 1. Velg matvare
-valgt_mat = st.selectbox("Søk etter matvare:", options=list(matvare_data.keys()))
+    # 1. Velg Kategori (Filter)
+    kategorier = sorted(df['Matvaregruppe'].unique())
+    valgt_kategori = st.selectbox("Velg kategori:", options=["Alle"] + kategorier)
 
-col1, col2 = st.columns(2)
-
-# Hent data for valgt mat
-info = matvare_data[valgt_mat]
-karbo_per_100 = info['karbo_100g']
-standard_vekt = info['vekt_stk']
-
-# 2. Velg mengde (Gram eller Stk)
-beregnet_karbo = 0
-
-with col1:
-    mode = st.radio("Måleenhet", ["Gram", "Stk/Porsjon"])
-
-with col2:
-    if mode == "Gram":
-        mengde = st.number_input("Antall gram:", min_value=0, value=100, step=10)
-        beregnet_karbo = (mengde / 100) * karbo_per_100
+    # 2. Filtrer listen basert på kategori
+    if valgt_kategori != "Alle":
+        filtrert_df = df[df['Matvaregruppe'] == valgt_kategori]
     else:
-        if standard_vekt:
-            antall = st.number_input(f"Antall stk (ca {standard_vekt}g/stk):", min_value=0.0, value=1.0, step=0.5)
-            beregnet_karbo = (antall * standard_vekt / 100) * karbo_per_100
-        else:
-            st.warning("Ingen stykkvekt registrert for denne varen. Bruk gram.")
-            mengde = st.number_input("Antall gram:", min_value=0, value=100)
-            beregnet_karbo = (mengde / 100) * karbo_per_100
+        filtrert_df = df
 
-# --- BBQ-MODUS (Din spesialitet!) ---
-st.markdown("---")
-st.subheader("🔥 BBQ & Tilbehør")
-bbq_tillegg = st.checkbox("Jeg har glaze/rub eller saus på kjøttet")
+    # 3. Velg Matvare (Søkbar liste)
+    matvarer = sorted(filtrert_df['Matvare'].unique())
+    valgt_mat_navn = st.selectbox("Søk etter matvare:", options=matvarer)
 
-tillegg_karbo = 0
-if bbq_tillegg:
-    st.info("Legger til standard BBQ-tillegg (ca 30% sukker i saus)")
-    saus_mengde = st.slider("Hvor mye saus/glaze? (gram)", 0, 100, 20)
-    # Enkel tommelfingerregel: BBQ saus er ofte ca 30-40g karbo per 100g
-    tillegg_karbo = (saus_mengde / 100) * 35 
+    # Hent karbo-tallet
+    rad = df[df['Matvare'] == valgt_mat_navn].iloc[0]
+    karbo_per_100 = rad['Karbo_g']
 
-# --- RESULTAT ---
-total_karbo = beregnet_karbo + tillegg_karbo
+    # --- BEREGNING ---
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.metric("Karbo per 100g", f"{karbo_per_100:.1f} g")
+    
+    with col2:
+        mengde = st.number_input("Mengde (gram):", min_value=0, value=100, step=10)
+    
+    mat_karbo = (mengde / 100) * karbo_per_100
 
-st.markdown("---")
-st.metric(label="Legg inn i pumpa (KH)", value=f"{total_karbo:.1f} g")
+    # --- BBQ-MODUS (Beholdes selvfølgelig!) ---
+    st.markdown("---")
+    with st.expander("🔥 BBQ & Saus-tillegg"):
+        st.write("For oss som røyker maten: Husk glaze og rub!")
+        bbq_tillegg = st.checkbox("Legg til saus/glaze?")
+        
+        tillegg_karbo = 0
+        if bbq_tillegg:
+            saus_mengde = st.slider("Mengde saus (gram)", 0, 100, 20)
+            tillegg_karbo = (saus_mengde / 100) * 35 # Antar 35g karbo i snitt
+            st.caption(f"+ {tillegg_karbo:.1f}g karbo fra saus")
 
-if total_karbo > 0:
-    st.success(f"Dette består av {beregnet_karbo:.1f}g fra maten og {tillegg_karbo:.1f}g fra saus/glaze.")
+    # --- TOTAL ---
+    total = mat_karbo + tillegg_karbo
+    
+    st.markdown("---")
+    st.subheader("Til Pumpa:")
+    st.title(f"{total:.1f} g")
