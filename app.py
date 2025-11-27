@@ -7,65 +7,66 @@ st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 st.title("🤖 Karbo-Robot")
 st.caption("Din smarte karbo-kalkulator")
 
+# --- KNAPP FOR Å TØMME MINNET (Hjelper hvis appen henger igjen på gamle data) ---
+if st.sidebar.button("Oppdater data"):
+    st.cache_data.clear()
+    st.rerun()
+
 # --- LASTE DATA ---
 @st.cache_data
 def last_data():
     try:
-        # Les Excel-filen
+        # Les filen (forventer at A1 er overskrifter)
         df = pd.read_excel("matvarer.xlsx")
         
-        # 1. STANDARIDISERING AV KOLONNER
-        # Gjør overskriftene om til små bokstaver og fjern mellomrom
+        # 1. RENSK OPP I KOLONNENAVN (Gjør alt til små bokstaver for sikkerhets skyld)
         df.columns = [str(c).lower().strip() for c in df.columns]
 
-        # Finn nøkkel-kolonnene
-        # Vi ser etter 'karbohydrat' (kan hete 'karbohydrat (g)')
+        # 2. IDENTIFISER VIKTIGE KOLONNER
+        # Vi ser etter 'matvare', 'karbohydrat' og 'id'
+        navn_col = next((c for c in df.columns if "matvare" in c and "id" not in c and "gruppe" not in c), None)
         karbo_col = next((c for c in df.columns if "karbo" in c), None)
-        # Vi ser etter 'matvare' 
-        navn_col = next((c for c in df.columns if "matvare" in c and "id" not in c), None)
-        # Vi ser etter ID (for å skille overskrifter fra mat)
-        id_col = next((c for c in df.columns if "id" in c), None)
+        id_col = next((c for c in df.columns if "id" in c), None) # Matvare ID
 
-        if karbo_col and navn_col:
+        if navn_col and karbo_col:
             
-            # 2. HÅNDTER KATEGORIER (Den smarte delen!)
-            # Hvis filen har kategorier som overskrifter i radene (som "Meieriprodukter")
-            # sjekker vi om ID-kolonnen mangler data på de radene.
-            
+            # 3. FIX KATEGORIER (Den smarte logikken)
+            # Hvis vi fant en ID-kolonne, bruk den til å finne overskrifter
             if id_col:
-                # Lag en ny kolonne for Kategori
                 df['kategori'] = None
                 
-                # Hvis ID mangler, er det en overskrift -> Bruk navnet som kategori
-                mask_overskrift = df[id_col].isna()
-                df.loc[mask_overskrift, 'kategori'] = df.loc[mask_overskrift, navn_col]
+                # Rader uten ID er kategorier (f.eks "Meieriprodukter")
+                mask_kategori = df[id_col].isna()
                 
-                # "Fyll nedover": Alle matvarer under "Meieriprodukter" får den kategorien
+                # Kopier navnet fra Matvare-kolonnen over til Kategori-kolonnen for disse radene
+                df.loc[mask_kategori, 'kategori'] = df.loc[mask_kategori, navn_col]
+                
+                # Fyll nedover (slik at "Lettmelk" arver "Meieriprodukter")
                 df['kategori'] = df['kategori'].ffill()
                 
-                # Fjern selve overskrifts-radene (vi trenger ikke "Meieriprodukter" som et matvalg)
-                df = df[~mask_overskrift].copy()
+                # Fjern selve overskrifts-radene fra listen over mat man kan velge
+                df = df[~mask_kategori].copy()
             else:
-                # Hvis ingen ID finnes, legg alt i én haug
+                # Fallback hvis ID mangler
                 df['kategori'] = "Alle varer"
 
-            # 3. RENSHIET OG FORMATERING
-            # Gi kolonnene standard navn
+            # 4. FERDIGSTILLING
+            # Gi standard navn
             df = df.rename(columns={navn_col: 'Matvare', karbo_col: 'Karbo_g', 'kategori': 'Matvaregruppe'})
             
-            # Behold kun det vi trenger
+            # Velg ut det vi trenger
             df = df[['Matvare', 'Matvaregruppe', 'Karbo_g']]
             
-            # Sikre at karbo er tall (0 hvis tomt)
+            # Sørg for at Karbo er tall (håndterer "spor", "-" osv)
             df['Karbo_g'] = pd.to_numeric(df['Karbo_g'], errors='coerce').fillna(0)
             
             return df
         else:
-            st.error(f"Fant ikke 'Matvare' og 'Karbohydrat'. Fant disse: {df.columns.tolist()}")
+            st.error(f"Fant ikke riktige kolonner. Fant disse: {df.columns.tolist()}")
             return None
 
     except FileNotFoundError:
-        st.warning("⚠️ Finner ikke 'matvarer.xlsx'. Last opp filen til GitHub.")
+        st.warning("⚠️ Finner ikke 'matvarer.xlsx'. Husk å laste den opp til GitHub!")
         return None
     except Exception as e:
         st.error(f"Noe gikk galt: {e}")
@@ -73,29 +74,29 @@ def last_data():
 
 df = last_data()
 
-# --- APP UI ---
+# --- BRUKERGRENSESNITT ---
 if df is not None:
-    # 1. KATEGORI-VELGER
-    unike_kategorier = sorted(df['Matvaregruppe'].astype(str).unique())
-    valgt_kategori = st.selectbox("Velg kategori:", ["Alle"] + unike_kategorier)
+    # Kategori-filter
+    unike_kat = sorted([str(k) for k in df['Matvaregruppe'].unique() if pd.notna(k)])
+    valgt_kat = st.selectbox("Velg kategori:", ["Alle"] + unike_kat)
 
-    if valgt_kategori != "Alle":
-        df_visning = df[df['Matvaregruppe'] == valgt_kategori]
+    # Filtrering
+    if valgt_kat != "Alle":
+        df_visning = df[df['Matvaregruppe'] == valgt_kat]
     else:
         df_visning = df
 
     st.subheader("🔍 Finn matvare")
 
-    # 2. SØKEFELT
+    # Søkefelt
     matvarer = sorted(df_visning['Matvare'].astype(str).unique())
     valgt_mat = st.selectbox("Søk:", matvarer)
 
     if valgt_mat:
-        # Hent data for valgt vare
         rad = df[df['Matvare'] == valgt_mat].iloc[0]
         karbo_100 = rad['Karbo_g']
 
-        # 3. KALKULATOR
+        # Visning
         c1, c2 = st.columns(2)
         with c1:
             st.metric("Karbo pr 100g", f"{karbo_100:.1f}")
@@ -104,17 +105,17 @@ if df is not None:
         
         tot_mat = (mengde / 100) * karbo_100
 
-        # 4. BBQ-MODUS
+        # BBQ-seksjon
         st.markdown("---")
         with st.expander("🔥 BBQ & Saus"):
-            bbq_aktiv = st.checkbox("Legg til glaze/saus")
+            bbq = st.checkbox("Legg til saus/glaze")
             tot_saus = 0
-            if bbq_aktiv:
+            if bbq:
                 g_saus = st.slider("Gram saus:", 0, 150, 20)
-                tot_saus = (g_saus / 100) * 35 # Antar 35g kh/100g
-                st.caption(f"+ {tot_saus:.1f} g karbo fra saus")
+                tot_saus = (g_saus/100)*35
+                st.caption(f"+ {tot_saus:.1f} g karbo")
         
-        # 5. RESULTAT TIL PUMPA
+        # Totalsum
         total = tot_mat + tot_saus
         st.markdown("---")
         st.subheader("Til Pumpa (KH):")
