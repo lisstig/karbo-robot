@@ -7,33 +7,25 @@ import re
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
 # --- DIN API NØKKEL ---
-# HUSK: Bytt ut teksten under med din nye nøkkel fra Kassalapp.no!
 API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
     st.session_state['kurv'] = []
 
-# --- DETEKTIV: FINN ANTALL I TEKST ---
+# --- DETEKTIV ---
 def finn_antall_i_tekst(beskrivelse):
     if not beskrivelse: return None
     tekst = beskrivelse.lower()
-    
-    # 1. Se etter tall (f.eks "10 stk")
     treff_tall = re.search(r'(\d+)\s*(stk|stykk|pølser|pk)', tekst)
     if treff_tall: return int(treff_tall.group(1))
-
-    # 2. Se etter norske ord
-    tall_ord = {
-        "en": 1, "et": 1, "to": 2, "tre": 3, "fire": 4, "fem": 5,
-        "seks": 6, "sju": 7, "syv": 7, "åtte": 8, "ni": 9, "ti": 10
-    }
+    tall_ord = {"en": 1, "et": 1, "to": 2, "tre": 3, "fire": 4, "fem": 5, "seks": 6, "sju": 7, "syv": 7, "åtte": 8, "ni": 9, "ti": 10}
     for ord, tall in tall_ord.items():
         if f"{ord} stk" in tekst or f"{ord} pølser" in tekst or f"{ord} i pakken" in tekst:
             return tall
     return None
 
-# --- API SØK ---
+# --- API ---
 def sok_kassalapp(sokeord):
     url = "https://kassal.app/api/v1/products"
     headers = {"Authorization": f"Bearer {API_KEY}"}
@@ -42,9 +34,7 @@ def sok_kassalapp(sokeord):
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         return response.json().get('data', [])
-    except Exception as e:
-        st.error(f"Klarte ikke koble til Kassalapp: {e}")
-        return []
+    except: return []
 
 # --- LOKALE DATA ---
 @st.cache_data
@@ -56,7 +46,6 @@ def last_lokale_data():
         karbo_col = next((c for c in df.columns if "karbo" in c), None)
         gruppe_col = next((c for c in df.columns if "kategori" in c or "gruppe" in c), None)
         vekt_col = next((c for c in df.columns if "vekt" in c), None)
-
         if navn_col and karbo_col and gruppe_col:
             cols = [navn_col, gruppe_col, karbo_col]
             if vekt_col: cols.append(vekt_col)
@@ -70,8 +59,7 @@ def last_lokale_data():
             df['Vekt_stk'] = pd.to_numeric(df['Vekt_stk'], errors='coerce')
             return df
         return None
-    except:
-        return None
+    except: return None
 
 df_lokal = last_lokale_data()
 
@@ -106,7 +94,6 @@ with tab1:
         kats = sorted([str(k) for k in df_lokal['Matvaregruppe'].unique() if k])
         valgt_kat = st.selectbox("Kategori:", ["Alle"] + kats)
         df_vis = df_lokal if valgt_kat == "Alle" else df_lokal[df_lokal['Matvaregruppe'] == valgt_kat]
-        
         matvarer = sorted(df_vis['Matvare'].astype(str).unique())
         valgt_mat = st.selectbox("Velg vare:", matvarer, index=None, placeholder="Søk i dine egne varer...")
 
@@ -114,7 +101,6 @@ with tab1:
             rad = df_lokal[df_lokal['Matvare'] == valgt_mat].iloc[0]
             kb_100 = rad['Karbo_g']
             vekt_stk = rad['Vekt_stk']
-            
             st.caption(f"Karbo: {kb_100}g / 100g")
             c1, c2 = st.columns(2)
             mengde_txt = ""
@@ -171,7 +157,7 @@ with tab2:
             for i, p in enumerate(resultater):
                 navn = p['name']
                 vendor = p.get('vendor', '')
-                ean = p.get('ean', str(i)) # Backup ID hvis EAN mangler
+                ean = p.get('ean', str(i))
                 visningsnavn = f"{i+1}. {navn} ({vendor}) {ean}"
                 valg_liste[visningsnavn] = p
 
@@ -181,9 +167,9 @@ with tab2:
                 produkt = valg_liste[valgt_nettvare_navn]
                 navn = produkt['name']
                 beskrivelse = produkt.get('description', '')
-                ean_id = produkt.get('ean', 'ukjent') # Brukes til å lage unike keys
-                
-                # DATA HENTING
+                ean_id = produkt.get('ean', 'ukjent')
+
+                # Data
                 nutr = produkt.get('nutrition', [])
                 karbo_api = 0
                 found_nutrition = False
@@ -193,56 +179,60 @@ with tab2:
                         karbo_api = n.get('amount', 0)
                         found_nutrition = True
                         break
-                
                 vekt_api = produkt.get('weight', 0)
                 antall_funnet = finn_antall_i_tekst(beskrivelse)
-                if not antall_funnet:
-                    antall_funnet = finn_antall_i_tekst(navn)
+                if not antall_funnet: antall_funnet = finn_antall_i_tekst(navn)
 
-                # UI VISNING
+                # UI
                 c_img, c_info = st.columns([1, 3])
                 with c_img:
-                    if produkt.get('image'):
-                        st.image(produkt['image'], width=100)
+                    if produkt.get('image'): st.image(produkt['image'], width=100)
                 with c_info:
                     st.subheader(navn)
-                    if found_nutrition:
-                        st.write(f"📊 **Karbo:** {karbo_api}g per 100g")
-                    else:
-                        st.error("⚠️ Fant ingen karbo-data!")
-                    if vekt_api:
-                        st.write(f"⚖️ **Vekt registrert:** {vekt_api}g")
-                    
-                    if antall_funnet:
-                        # ENDRET TEKST HER:
-                        st.success(f"🕵️ Fant antall i pakken: **{antall_funnet} stk**")
+                    if found_nutrition: st.write(f"📊 **Karbo:** {karbo_api}g per 100g")
+                    else: st.error("⚠️ Fant ingen karbo-data!")
+                    if vekt_api: st.write(f"⚖️ **Vekt:** {vekt_api}g")
+                    if antall_funnet: st.success(f"🕵️ Fant antall i pakken: **{antall_funnet} stk**")
                 
-                with st.expander("🛠️ Se rådata"):
-                    st.write(produkt)
-
+                with st.expander("🛠️ Se rådata"): st.write(produkt)
                 st.markdown("---")
+                
                 c_kalk1, c_kalk2 = st.columns(2)
                 mengde_nett = 0
                 beskrivelse_nett = ""
                 
                 with c_kalk1:
-                    valg_type = st.radio("Hvordan vil du regne?", ["Gram", "Hele pakken/Stk"], horizontal=True, key=f"radio_{ean_id}")
+                    valg_type = st.radio("Regnemåte:", ["Gram", "Hele pakken/Stk"], horizontal=True, key=f"radio_{ean_id}")
                     
                     if valg_type == "Gram":
                         mengde_nett = st.number_input("Antall gram:", 100, step=10, key=f"gram_{ean_id}")
                         beskrivelse_nett = f"{mengde_nett} g"
                     else:
-                        start_vekt = float(vekt_api) if vekt_api else None
-                        # ENDRET: UNIK KEY PÅ INPUT FELTENE SLIK AT VERDIEN NULLSTILLES
-                        pk_vekt = st.number_input("Totalvekt (g):", value=start_vekt, step=1.0, key=f"vekt_{ean_id}")
-                        
+                        start_vekt = float(vekt_api) if vekt_api else 0.0
                         start_antall = int(antall_funnet) if antall_funnet else 1
-                        # ENDRET: UNIK KEY HER OGSÅ
-                        pk_ant = st.number_input("Antall i pakke:", min_value=1, value=start_antall, key=f"ant_{ean_id}")
                         
-                        if pk_vekt:
+                        # --- DETTE ER NYTT: SKJUL REGNESTYKKET HVIS VI HAR FASIT ---
+                        # Vi legger input-feltene inne i en expander som er LUKKET
+                        # med mindre brukeren åpner den for å endre.
+                        
+                        if start_vekt > 0 and start_antall > 1:
+                            tekst_expander = "📝 Endre vekt/antall? (Klikk her)"
+                            open_expander = False
+                        else:
+                            # Hvis vi mangler info, må vi vise feltene
+                            tekst_expander = "📝 Fyll inn pakkeinfo"
+                            open_expander = True
+
+                        with st.expander(tekst_expander, expanded=open_expander):
+                            pk_vekt = st.number_input("Totalvekt (g):", value=start_vekt, step=1.0, key=f"vekt_{ean_id}")
+                            pk_ant = st.number_input("Antall i pakke:", min_value=1, value=start_antall, key=f"ant_{ean_id}")
+                        
+                        if pk_vekt and pk_ant:
                             enhet_vekt = pk_vekt / pk_ant
-                            st.write(f"👉 1 stk veier ca **{enhet_vekt:.0f} g**")
+                            # Vis resultatet tydelig utenfor menyen
+                            st.info(f"👉 1 stk veier ca **{enhet_vekt:.0f} g**")
+                            
+                            # Fokus på det viktige:
                             ant_spist = st.number_input("Antall du spiser:", 1.0, step=0.5, key=f"spist_{ean_id}")
                             mengde_nett = ant_spist * enhet_vekt
                             beskrivelse_nett = f"{ant_spist} stk ({navn})"
@@ -270,10 +260,8 @@ if st.session_state['kurv']:
     st.table(kurv_df[['navn', 'beskrivelse', 'karbo']])
     total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
     col_res1, col_res2 = st.columns([2, 1])
-    with col_res1:
-        st.subheader("Totalt til Pumpa:")
-    with col_res2:
-        st.title(f"{total_sum:.1f} g")
+    with col_res1: st.subheader("Totalt til Pumpa:")
+    with col_res2: st.title(f"{total_sum:.1f} g")
     if st.button("Angre siste"):
         st.session_state['kurv'].pop()
         st.rerun()
