@@ -169,7 +169,6 @@ with tab2:
                 beskrivelse = produkt.get('description', '')
                 ean_id = produkt.get('ean', 'ukjent')
 
-                # Data
                 nutr = produkt.get('nutrition', [])
                 karbo_api = 0
                 found_nutrition = False
@@ -183,7 +182,6 @@ with tab2:
                 antall_funnet = finn_antall_i_tekst(beskrivelse)
                 if not antall_funnet: antall_funnet = finn_antall_i_tekst(navn)
 
-                # UI
                 c_img, c_info = st.columns([1, 3])
                 with c_img:
                     if produkt.get('image'): st.image(produkt['image'], width=100)
@@ -211,16 +209,13 @@ with tab2:
                         start_vekt = float(vekt_api) if vekt_api else 0.0
                         start_antall = int(antall_funnet) if antall_funnet else 1
                         
-                        # --- DETTE ER NYTT: SKJUL REGNESTYKKET HVIS VI HAR FASIT ---
-                        # Vi legger input-feltene inne i en expander som er LUKKET
-                        # med mindre brukeren åpner den for å endre.
-                        
+                        # LOGIKK: Skjul felt hvis vi har funnet både vekt og antall
                         if start_vekt > 0 and start_antall > 1:
                             tekst_expander = "📝 Endre vekt/antall? (Klikk her)"
                             open_expander = False
                         else:
-                            # Hvis vi mangler info, må vi vise feltene
-                            tekst_expander = "📝 Fyll inn pakkeinfo"
+                            # HVIS IKKE: VIS FELTENE SLIK AT BRUKEREN SER AT DEN MÅ ENDRES
+                            tekst_expander = "📝 Fyll inn pakkeinfo (Viktig!)"
                             open_expander = True
 
                         with st.expander(tekst_expander, expanded=open_expander):
@@ -229,10 +224,13 @@ with tab2:
                         
                         if pk_vekt and pk_ant:
                             enhet_vekt = pk_vekt / pk_ant
-                            # Vis resultatet tydelig utenfor menyen
                             st.info(f"👉 1 stk veier ca **{enhet_vekt:.0f} g**")
                             
-                            # Fokus på det viktige:
+                            # --- RIMELIGHETSSJEKK ---
+                            # Hvis en pølse/enhet veier mer enn 150g, gi en advarsel!
+                            if enhet_vekt > 150:
+                                st.warning(f"⚠️ {enhet_vekt:.0f}g pr stk? Det var mye! Husk å justere 'Antall i pakke' hvis det er flere oppi.")
+                            
                             ant_spist = st.number_input("Antall du spiser:", 1.0, step=0.5, key=f"spist_{ean_id}")
                             mengde_nett = ant_spist * enhet_vekt
                             beskrivelse_nett = f"{ant_spist} stk ({navn})"
