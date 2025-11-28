@@ -5,9 +5,8 @@ import requests
 # --- KONFIGURASJON ---
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
-# --- DIN HEMMELIGE NØKKEL ---
-# (I fremtiden bør denne legges i Streamlit Secrets, men vi kjører den her for testing nå)
-API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
+# --- DIN API NØKKEL ---
+API_KEY = "aiKUN2TjEqyHrZl8kKNgzbEKnbY3HqREOIEPVetQ"
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
@@ -17,17 +16,18 @@ if 'kurv' not in st.session_state:
 def sok_kassalapp(sokeord):
     url = "https://kassal.app/api/v1/products"
     headers = {"Authorization": f"Bearer {API_KEY}"}
+    
+    # ENDRING: Fjernet sortering på pris, økt antall til 30
     params = {
         "search": sokeord,
-        "sort": "price_asc", # Sorterer på pris, ofte greit for å finne vanlige varer
-        "size": 10 # Henter max 10 treff
+        "size": 30 
     }
     
     try:
         response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status() # Sjekk om vi fikk feilmelding
+        response.raise_for_status()
         data = response.json()
-        return data.get('data', []) # Returnerer listen med produkter
+        return data.get('data', [])
     except Exception as e:
         st.error(f"Klarte ikke koble til Kassalapp: {e}")
         return []
@@ -119,7 +119,6 @@ with tab1:
                     gram = st.number_input("Gram:", 100, step=10)
                     mengde_txt = f"{gram} g"
                     
-                    # Pakke-hjelp i Excel-fanen også
                     with st.expander("🔢 Har du hele pakken?"):
                         p_vekt = st.number_input("Pakkevekt (g):", min_value=0, value=None, step=1)
                         p_ant = st.number_input("Antall i pakke:", min_value=1, value=1)
@@ -158,38 +157,51 @@ with tab2:
         if not resultater:
             st.warning("Fant ingen varer. Prøv et annet ord.")
         else:
-            # Vis resultatene som en liste man kan velge fra
             valg_liste = {f"{p['name']} ({p.get('vendor', '')})" : p for p in resultater}
             valgt_nettvare_navn = st.selectbox("Velg produkt:", list(valg_liste.keys()), index=None)
             
             if valgt_nettvare_navn:
                 produkt = valg_liste[valgt_nettvare_navn]
-                
-                # Hent ut data fra API-et
                 navn = produkt['name']
-                # Prøv å finne karbo i næringsinnholdet
+                
+                # --- SMARTERE KARBO-FINNER ---
                 nutr = produkt.get('nutrition', [])
                 karbo_api = 0
+                found_nutrition = False
+                
+                # Vi leter etter flere mulige navn på karbohydrater
+                mulige_koder = ['carbohydrates', 'carbohydrate', 'karbohydrater', 'karbohydrat']
+                
                 for n in nutr:
-                    if n['code'] == 'carbohydrates':
-                        karbo_api = n['amount']
+                    # Sjekk om koden (i små bokstaver) er i listen vår
+                    if n.get('code', '').lower() in mulige_koder:
+                        karbo_api = n.get('amount', 0)
+                        found_nutrition = True
                         break
                 
-                # Prøv å finne vekt
-                vekt_api = produkt.get('weight', 0) # Ofte i gram
+                vekt_api = produkt.get('weight', 0)
                 
-                # --- VISNING AV API-DATA ---
+                # UI
                 c_img, c_info = st.columns([1, 3])
                 with c_img:
                     if produkt.get('image'):
                         st.image(produkt['image'], width=100)
                 with c_info:
                     st.subheader(navn)
-                    st.write(f"📊 **Karbo:** {karbo_api}g per 100g")
+                    
+                    if found_nutrition:
+                        st.write(f"📊 **Karbo:** {karbo_api}g per 100g")
+                    else:
+                        st.error("⚠️ Fant ingen karbo-data på dette produktet!")
+                    
                     if vekt_api:
                         st.write(f"⚖️ **Vekt registrert:** {vekt_api}g")
                 
-                # --- KALKULATOR FOR NETTVARE ---
+                # --- DEBUGGING (HVIS DET FORTSATT ER FEIL) ---
+                with st.expander("🛠️ Se rådata (For feilsøking)"):
+                    st.write(produkt)
+
+                # KALKULATOR
                 st.markdown("---")
                 c_kalk1, c_kalk2 = st.columns(2)
                 
@@ -197,8 +209,6 @@ with tab2:
                 beskrivelse_nett = ""
                 
                 with c_kalk1:
-                    # Vi bruker pakke-kalkulatoren som standard for API-varer
-                    # fordi vi ofte finner totalvekt, men ikke "antall pølser"
                     valg_type = st.radio("Hvordan vil du regne?", ["Gram", "Hele pakken/Stk"], horizontal=True)
                     
                     if valg_type == "Gram":
@@ -206,16 +216,13 @@ with tab2:
                         beskrivelse_nett = f"{mengde_nett} g"
                     else:
                         st.caption(f"Vi fant vekten: {vekt_api}g. Vet du antallet?")
-                        # Fyll inn vekten fra API automatisk hvis vi fant den!
                         start_vekt = float(vekt_api) if vekt_api else None
-                        
                         pk_vekt = st.number_input("Totalvekt (g):", value=start_vekt, step=1.0, key="nett_pk_vekt")
                         pk_ant = st.number_input("Antall i pakke:", min_value=1, value=1, key="nett_pk_ant")
                         
                         if pk_vekt:
                             enhet_vekt = pk_vekt / pk_ant
                             st.write(f"👉 1 stk veier ca **{enhet_vekt:.0f} g**")
-                            
                             ant_spist = st.number_input("Antall du spiser:", 1.0, step=0.5, key="nett_spist")
                             mengde_nett = ant_spist * enhet_vekt
                             beskrivelse_nett = f"{ant_spist} stk ({navn})"
@@ -228,7 +235,6 @@ with tab2:
                         tillegg_nett = (g_saus/100)*35
                         beskrivelse_nett += " + saus"
 
-                # Resultat
                 tot_nett = (mengde_nett/100)*karbo_api + tillegg_nett
                 st.write(f"### = {tot_nett:.1f} g karbo")
                 
@@ -236,23 +242,19 @@ with tab2:
                     st.session_state['kurv'].append({"navn": navn, "beskrivelse": beskrivelse_nett, "karbo": tot_nett})
                     st.rerun()
 
-
-# --- KURV VISNING (FELLES) ---
+# --- KURV ---
 st.markdown("---")
 st.header("🍽️ Dagens Måltid")
 
 if st.session_state['kurv']:
     kurv_df = pd.DataFrame(st.session_state['kurv'])
     st.table(kurv_df[['navn', 'beskrivelse', 'karbo']])
-    
     total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
-    
     col_res1, col_res2 = st.columns([2, 1])
     with col_res1:
         st.subheader("Totalt til Pumpa:")
     with col_res2:
         st.title(f"{total_sum:.1f} g")
-        
     if st.button("Angre siste"):
         st.session_state['kurv'].pop()
         st.rerun()
