@@ -25,7 +25,9 @@ def finn_antall_i_tekst(beskrivelse):
             return tall
     return None
 
-# --- API ---
+# --- API SØK (MED HUKOMMELSE!) ---
+# @st.cache_data gjør at den HUSKER resultatet, så vi slipper "dimming"
+@st.cache_data(show_spinner=False) 
 def sok_kassalapp(sokeord):
     url = "https://kassal.app/api/v1/products"
     headers = {"Authorization": f"Bearer {API_KEY}"}
@@ -63,18 +65,25 @@ def last_lokale_data():
 
 df_lokal = last_lokale_data()
 
-# --- SIDEBAR ---
+# --- SIDEBAR (MENY) ---
 with st.sidebar:
-    st.header("Innstillinger")
+    st.header("⚙️ Innstillinger")
     if st.button("🗑️ Tøm kurv"):
         st.session_state['kurv'] = []
         st.rerun()
     if st.button("🔄 Oppdater data"):
         st.cache_data.clear()
         st.rerun()
+    
     st.markdown("---")
-    with st.expander("💬 Kontakt"):
-        st.link_button("✍️ Gi tilbakemelding", "https://forms.gle/xn1RnNAgcr1frzhr8")
+    
+    # KONTAKT - Nå ligger den synlig her!
+    st.header("💬 Kontakt")
+    st.write("Fant du en feil eller har et ønske?")
+    st.link_button("✍️ Send tilbakemelding", "https://forms.gle/xn1RnNAgcr1frzhr8")
+    
+    st.markdown("---")
+    st.info("Tips: Nett-søket husker nå hva du fant, så appen jobber raskere!")
 
 # --- UI START ---
 st.title("🤖 Karbo-Robot")
@@ -209,12 +218,10 @@ with tab2:
                         start_vekt = float(vekt_api) if vekt_api else 0.0
                         start_antall = int(antall_funnet) if antall_funnet else 1
                         
-                        # LOGIKK: Skjul felt hvis vi har funnet både vekt og antall
                         if start_vekt > 0 and start_antall > 1:
                             tekst_expander = "📝 Endre vekt/antall? (Klikk her)"
                             open_expander = False
                         else:
-                            # HVIS IKKE: VIS FELTENE SLIK AT BRUKEREN SER AT DEN MÅ ENDRES
                             tekst_expander = "📝 Fyll inn pakkeinfo (Viktig!)"
                             open_expander = True
 
@@ -226,10 +233,8 @@ with tab2:
                             enhet_vekt = pk_vekt / pk_ant
                             st.info(f"👉 1 stk veier ca **{enhet_vekt:.0f} g**")
                             
-                            # --- RIMELIGHETSSJEKK ---
-                            # Hvis en pølse/enhet veier mer enn 150g, gi en advarsel!
                             if enhet_vekt > 150:
-                                st.warning(f"⚠️ {enhet_vekt:.0f}g pr stk? Det var mye! Husk å justere 'Antall i pakke' hvis det er flere oppi.")
+                                st.warning(f"⚠️ {enhet_vekt:.0f}g pr stk? Det var mye! Sjekk 'Antall i pakke'.")
                             
                             ant_spist = st.number_input("Antall du spiser:", 1.0, step=0.5, key=f"spist_{ean_id}")
                             mengde_nett = ant_spist * enhet_vekt
