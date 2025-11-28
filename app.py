@@ -136,7 +136,8 @@ if nett_sok:
                 valg_type = st.radio("Regnemåte:", ["Gram", "Hele pakken/Stk"], horizontal=True, key=f"radio_{ean_id}")
                 
                 if valg_type == "Gram":
-                    mengde_nett = st.number_input("Antall gram:", 100, step=10, key=f"gram_{ean_id}")
+                    # FIX: Satt min_value=0, og value=100 som standard
+                    mengde_nett = st.number_input("Antall gram:", min_value=0, value=100, step=10, key=f"gram_{ean_id}")
                     beskrivelse_nett = f"{mengde_nett} g"
                 else:
                     start_vekt = float(vekt_api) if vekt_api else 0.0
