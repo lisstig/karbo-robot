@@ -6,7 +6,7 @@ import requests
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
 # --- DIN API NØKKEL ---
-API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
+API_KEY = "aiKUN2TjEqyHrZl8kKNgzbEKnbY3HqREOIEPVetQ"
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
@@ -17,7 +17,7 @@ def sok_kassalapp(sokeord):
     url = "https://kassal.app/api/v1/products"
     headers = {"Authorization": f"Bearer {API_KEY}"}
     
-    # Henter opp til 50 varer for å være sikker på at vi får med alt
+    # Henter opp til 50 varer
     params = {
         "search": sokeord,
         "size": 50
@@ -157,15 +157,17 @@ with tab2:
         if not resultater:
             st.warning("Fant ingen varer. Prøv et annet ord.")
         else:
-            # INFO: Viser antall treff
             st.success(f"Fant {len(resultater)} produkter!")
 
-            # FIX: Vi lager unike nøkler ved å legge til ID, slik at alle pølser vises
+            # FIX: Vi lager HELT unike nøkler ved å legge på et tall foran (1. , 2. etc)
             valg_liste = {}
-            for p in resultater:
-                # Lager et navn som inneholder produsent og EAN kode for å være unik
-                ean_kode = p.get('ean', p.get('id', 'ukjent'))
-                visningsnavn = f"{p['name']} ({p.get('vendor', '')}) - {ean_kode}"
+            for i, p in enumerate(resultater):
+                navn = p['name']
+                vendor = p.get('vendor', '')
+                ean = p.get('ean', '')
+                
+                # Her lager vi "1. Gilde Pølse...", "2. Gilde Pølse..."
+                visningsnavn = f"{i+1}. {navn} ({vendor}) {ean}"
                 valg_liste[visningsnavn] = p
 
             valgt_nettvare_navn = st.selectbox("Velg produkt:", list(valg_liste.keys()), index=None)
