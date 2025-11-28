@@ -6,7 +6,7 @@ import requests
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
 # --- DIN API NØKKEL ---
-API_KEY = "aiKUN2TjEqyHrZl8kKNgzbEKnbY3HqREOIEPVetQ"
+API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
