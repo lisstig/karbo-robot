@@ -151,8 +151,18 @@ with tab2:
     st.caption("Søker i tusenvis av norske dagligvarer via Kassalapp.no")
     nett_sok = st.text_input("Søk etter noe (f.eks 'Gilde pølse'):")
     
-    if nett_sok = st.text_input("Søk etter noe (f.eks 'Gilde pølse'):")
-    st.caption("💡 Tips: Får du få treff? Prøv entall (f.eks 'pølse' i stedet for 'pølser') eller færre ord.")
+   st.caption("Søker i tusenvis av norske dagligvarer via Kassalapp.no")
+    
+    # 1. Her lager vi søkefeltet
+    nett_sok = st.text_input("Søk etter noe (f.eks 'Gilde pølse'):")
+    
+    # 2. Her legger vi inn tipset (valgfritt)
+    st.caption("💡 Tips: Får du få treff? Prøv entall (f.eks 'pølse') og færre ord.")
+    
+    # 3. Her sjekker vi om du har skrevet noe
+    if nett_sok:
+        resultater = sok_kassalapp(nett_sok)
+        # ... resten av koden fortsetter som før ...
         
         if not resultater:
             st.warning("Fant ingen varer. Prøv et annet ord.")
