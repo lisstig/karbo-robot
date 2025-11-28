@@ -81,7 +81,7 @@ with st.sidebar:
     st.link_button("✍️ Send tilbakemelding", "https://forms.gle/xn1RnNAgcr1frzhr8")
     
     st.markdown("---")
-    # HER ER DEN TILBAKE!
+    
     with st.expander("ℹ️ Om dataene"):
         st.markdown("""
         **Kilder:**
@@ -90,7 +90,7 @@ with st.sidebar:
         * ⚖️ Produsentinfo (Gilde, Hatting, etc.)
         * 🔥 Egne BBQ-beregninger
         
-        *Laget for MiniMed 780G.*
+        *Laget for insulinpumper.*
         """)
         
     st.info("Tips: Nett-søket husker nå hva du fant, så appen jobber raskere!")
@@ -296,7 +296,9 @@ if st.session_state['kurv']:
     total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
     st.markdown("---")
     col_res1, col_res2 = st.columns([2, 1])
-    with col_res1: st.subheader("Totalt til Pumpa:")
-    with col_res2: st.title(f"{total_sum:.1f} g")
+    with col_res1:
+        st.subheader("Totalt til Pumpa:")
+    with col_res2:
+        st.title(f"{total_sum:.1f} g")
 else:
     st.caption("Kurven er tom.")
