@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-import re  # <--- NYTT: Vi må importere regex for å lese tekst
+import re
 
 # --- KONFIGURASJON ---
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
@@ -14,35 +14,26 @@ API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
 if 'kurv' not in st.session_state:
     st.session_state['kurv'] = []
 
-# --- NY HJELPEFUNKSJON: DETEKTIVEN ---
+# --- DETEKTIV: FINN ANTALL I TEKST ---
 def finn_antall_i_tekst(beskrivelse):
-    """Prøver å finne antall stk i en tekststreng (f.eks 'seks stk' -> 6)"""
-    if not beskrivelse:
-        return None
-    
+    if not beskrivelse: return None
     tekst = beskrivelse.lower()
     
-    # 1. Se etter tall (f.eks "10 stk", "6 pølser")
-    # \d+ betyr "et tall", \s* betyr "mellomrom", (stk|pølser...) er ordene vi ser etter
+    # 1. Se etter tall (f.eks "10 stk")
     treff_tall = re.search(r'(\d+)\s*(stk|stykk|pølser|pk)', tekst)
-    if treff_tall:
-        return int(treff_tall.group(1))
+    if treff_tall: return int(treff_tall.group(1))
 
-    # 2. Se etter norske ord (f.eks "seks stk")
+    # 2. Se etter norske ord
     tall_ord = {
         "en": 1, "et": 1, "to": 2, "tre": 3, "fire": 4, "fem": 5,
-        "seks": 6, "sju": 7, "syv": 7, "åtte": 8, "ni": 9, "ti": 10,
-        "elleve": 11, "tolv": 12
+        "seks": 6, "sju": 7, "syv": 7, "åtte": 8, "ni": 9, "ti": 10
     }
-    
     for ord, tall in tall_ord.items():
-        # Sjekker om f.eks "seks stk" eller "seks pølser" står i teksten
         if f"{ord} stk" in tekst or f"{ord} pølser" in tekst or f"{ord} i pakken" in tekst:
             return tall
-            
-    return None # Fant ingenting
+    return None
 
-# --- FUNKSJON: HENT DATA FRA KASSALAPP ---
+# --- API SØK ---
 def sok_kassalapp(sokeord):
     url = "https://kassal.app/api/v1/products"
     headers = {"Authorization": f"Bearer {API_KEY}"}
@@ -55,7 +46,7 @@ def sok_kassalapp(sokeord):
         st.error(f"Klarte ikke koble til Kassalapp: {e}")
         return []
 
-# --- LASTE LOKALE DATA (EXCEL) ---
+# --- LOKALE DATA ---
 @st.cache_data
 def last_lokale_data():
     try:
@@ -180,7 +171,7 @@ with tab2:
             for i, p in enumerate(resultater):
                 navn = p['name']
                 vendor = p.get('vendor', '')
-                ean = p.get('ean', '')
+                ean = p.get('ean', str(i)) # Backup ID hvis EAN mangler
                 visningsnavn = f"{i+1}. {navn} ({vendor}) {ean}"
                 valg_liste[visningsnavn] = p
 
@@ -190,8 +181,9 @@ with tab2:
                 produkt = valg_liste[valgt_nettvare_navn]
                 navn = produkt['name']
                 beskrivelse = produkt.get('description', '')
+                ean_id = produkt.get('ean', 'ukjent') # Brukes til å lage unike keys
                 
-                # --- DATA HENTING ---
+                # DATA HENTING
                 nutr = produkt.get('nutrition', [])
                 karbo_api = 0
                 found_nutrition = False
@@ -203,12 +195,8 @@ with tab2:
                         break
                 
                 vekt_api = produkt.get('weight', 0)
-                
-                # --- ANTALL DETEKTIV ---
-                # Her bruker vi den nye funksjonen vår!
                 antall_funnet = finn_antall_i_tekst(beskrivelse)
                 if not antall_funnet:
-                    # Prøv å se i navnet også (f.eks "Grillpølse 10pk")
                     antall_funnet = finn_antall_i_tekst(navn)
 
                 # UI VISNING
@@ -225,52 +213,52 @@ with tab2:
                     if vekt_api:
                         st.write(f"⚖️ **Vekt registrert:** {vekt_api}g")
                     
-                    # Vis info om detektiven fant noe
                     if antall_funnet:
-                        st.success(f"🕵️ Fant antall i teksten: **{antall_funnet} stk**")
+                        # ENDRET TEKST HER:
+                        st.success(f"🕵️ Fant antall i pakken: **{antall_funnet} stk**")
                 
-                with st.expander("🛠️ Se rådata (For feilsøking)"):
+                with st.expander("🛠️ Se rådata"):
                     st.write(produkt)
 
-                # KALKULATOR
                 st.markdown("---")
                 c_kalk1, c_kalk2 = st.columns(2)
                 mengde_nett = 0
                 beskrivelse_nett = ""
                 
                 with c_kalk1:
-                    valg_type = st.radio("Hvordan vil du regne?", ["Gram", "Hele pakken/Stk"], horizontal=True)
+                    valg_type = st.radio("Hvordan vil du regne?", ["Gram", "Hele pakken/Stk"], horizontal=True, key=f"radio_{ean_id}")
                     
                     if valg_type == "Gram":
-                        mengde_nett = st.number_input("Antall gram:", 100, step=10, key="nett_gram")
+                        mengde_nett = st.number_input("Antall gram:", 100, step=10, key=f"gram_{ean_id}")
                         beskrivelse_nett = f"{mengde_nett} g"
                     else:
                         start_vekt = float(vekt_api) if vekt_api else None
-                        pk_vekt = st.number_input("Totalvekt (g):", value=start_vekt, step=1.0, key="nett_pk_vekt")
+                        # ENDRET: UNIK KEY PÅ INPUT FELTENE SLIK AT VERDIEN NULLSTILLES
+                        pk_vekt = st.number_input("Totalvekt (g):", value=start_vekt, step=1.0, key=f"vekt_{ean_id}")
                         
-                        # HER ER MAGIEN: Hvis detektiven fant et tall, sett det som standard!
                         start_antall = int(antall_funnet) if antall_funnet else 1
-                        pk_ant = st.number_input("Antall i pakke:", min_value=1, value=start_antall, key="nett_pk_ant")
+                        # ENDRET: UNIK KEY HER OGSÅ
+                        pk_ant = st.number_input("Antall i pakke:", min_value=1, value=start_antall, key=f"ant_{ean_id}")
                         
                         if pk_vekt:
                             enhet_vekt = pk_vekt / pk_ant
                             st.write(f"👉 1 stk veier ca **{enhet_vekt:.0f} g**")
-                            ant_spist = st.number_input("Antall du spiser:", 1.0, step=0.5, key="nett_spist")
+                            ant_spist = st.number_input("Antall du spiser:", 1.0, step=0.5, key=f"spist_{ean_id}")
                             mengde_nett = ant_spist * enhet_vekt
                             beskrivelse_nett = f"{ant_spist} stk ({navn})"
 
                 with c_kalk2:
-                    bbq_nett = st.checkbox("Saus/Glaze?", key="bbq_nett")
+                    bbq_nett = st.checkbox("Saus/Glaze?", key=f"bbq_{ean_id}")
                     tillegg_nett = 0
                     if bbq_nett:
-                        g_saus = st.slider("Saus (g):", 0, 150, 20, key="slider_nett")
+                        g_saus = st.slider("Saus (g):", 0, 150, 20, key=f"slider_{ean_id}")
                         tillegg_nett = (g_saus/100)*35
                         beskrivelse_nett += " + saus"
 
                 tot_nett = (mengde_nett/100)*karbo_api + tillegg_nett
                 st.write(f"### = {tot_nett:.1f} g karbo")
                 
-                if st.button("➕ Legg til i måltid", key="btn_nett"):
+                if st.button("➕ Legg til i måltid", key=f"btn_{ean_id}"):
                     st.session_state['kurv'].append({"navn": navn, "beskrivelse": beskrivelse_nett, "karbo": tot_nett})
                     st.rerun()
 
