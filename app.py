@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import re  # <--- NYTT: Vi må importere regex for å lese tekst
 
 # --- KONFIGURASJON ---
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
@@ -13,22 +14,43 @@ API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
 if 'kurv' not in st.session_state:
     st.session_state['kurv'] = []
 
+# --- NY HJELPEFUNKSJON: DETEKTIVEN ---
+def finn_antall_i_tekst(beskrivelse):
+    """Prøver å finne antall stk i en tekststreng (f.eks 'seks stk' -> 6)"""
+    if not beskrivelse:
+        return None
+    
+    tekst = beskrivelse.lower()
+    
+    # 1. Se etter tall (f.eks "10 stk", "6 pølser")
+    # \d+ betyr "et tall", \s* betyr "mellomrom", (stk|pølser...) er ordene vi ser etter
+    treff_tall = re.search(r'(\d+)\s*(stk|stykk|pølser|pk)', tekst)
+    if treff_tall:
+        return int(treff_tall.group(1))
+
+    # 2. Se etter norske ord (f.eks "seks stk")
+    tall_ord = {
+        "en": 1, "et": 1, "to": 2, "tre": 3, "fire": 4, "fem": 5,
+        "seks": 6, "sju": 7, "syv": 7, "åtte": 8, "ni": 9, "ti": 10,
+        "elleve": 11, "tolv": 12
+    }
+    
+    for ord, tall in tall_ord.items():
+        # Sjekker om f.eks "seks stk" eller "seks pølser" står i teksten
+        if f"{ord} stk" in tekst or f"{ord} pølser" in tekst or f"{ord} i pakken" in tekst:
+            return tall
+            
+    return None # Fant ingenting
+
 # --- FUNKSJON: HENT DATA FRA KASSALAPP ---
 def sok_kassalapp(sokeord):
     url = "https://kassal.app/api/v1/products"
     headers = {"Authorization": f"Bearer {API_KEY}"}
-    
-    # Henter opp til 50 varer
-    params = {
-        "search": sokeord,
-        "size": 50
-    }
-    
+    params = {"search": sokeord, "size": 50}
     try:
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
-        data = response.json()
-        return data.get('data', [])
+        return response.json().get('data', [])
     except Exception as e:
         st.error(f"Klarte ikke koble til Kassalapp: {e}")
         return []
@@ -103,7 +125,6 @@ with tab1:
             vekt_stk = rad['Vekt_stk']
             
             st.caption(f"Karbo: {kb_100}g / 100g")
-            
             c1, c2 = st.columns(2)
             mengde_txt = ""
             with c1:
@@ -119,7 +140,6 @@ with tab1:
                 else:
                     gram = st.number_input("Gram:", 100, step=10)
                     mengde_txt = f"{gram} g"
-                    
                     with st.expander("🔢 Har du hele pakken?"):
                         p_vekt = st.number_input("Pakkevekt (g):", min_value=0, value=None, step=1)
                         p_ant = st.number_input("Antall i pakke:", min_value=1, value=1)
@@ -129,19 +149,15 @@ with tab1:
                             spist = st.number_input("Spist:", 1.0, step=0.5)
                             gram = spist * stk_v
                             mengde_txt = f"{spist} stk (fra pakke)"
-
             with c2:
                 bbq = st.checkbox("Saus/Glaze?")
                 tillegg = 0
                 if bbq:
-                    # HER VAR FEILEN SIST - NÅ ER DEN FIKSET:
                     g_saus = st.slider("Mengde saus (g):", 0, 150, 20)
                     tillegg = (g_saus/100)*35
                     mengde_txt += f" + saus"
-            
             tot = (gram/100)*kb_100 + tillegg
             st.write(f"### = {tot:.1f} g karbo")
-            
             if st.button("➕ Legg til", key="add_local"):
                 st.session_state['kurv'].append({"navn": valgt_mat, "beskrivelse": mengde_txt, "karbo": tot})
                 st.rerun()
@@ -151,28 +167,20 @@ with tab1:
 # ==========================
 with tab2:
     st.caption("Søker i tusenvis av norske dagligvarer via Kassalapp.no")
-    
-    # 1. Her lager vi søkefeltet
     nett_sok = st.text_input("Søk etter noe (f.eks 'Gilde pølse'):")
-    
-    # 2. Her legger vi inn tipset
     st.caption("💡 Tips: Får du få treff? Prøv entall (f.eks 'pølse') og færre ord.")
     
     if nett_sok:
         resultater = sok_kassalapp(nett_sok)
-        
         if not resultater:
             st.warning("Fant ingen varer. Prøv et annet ord.")
         else:
             st.success(f"Fant {len(resultater)} produkter!")
-
-            # FIX: Vi lager HELT unike nøkler ved å legge på et tall foran
             valg_liste = {}
             for i, p in enumerate(resultater):
                 navn = p['name']
                 vendor = p.get('vendor', '')
                 ean = p.get('ean', '')
-                
                 visningsnavn = f"{i+1}. {navn} ({vendor}) {ean}"
                 valg_liste[visningsnavn] = p
 
@@ -181,13 +189,13 @@ with tab2:
             if valgt_nettvare_navn:
                 produkt = valg_liste[valgt_nettvare_navn]
                 navn = produkt['name']
+                beskrivelse = produkt.get('description', '')
                 
-                # --- KARBO-DETEKTIV ---
+                # --- DATA HENTING ---
                 nutr = produkt.get('nutrition', [])
                 karbo_api = 0
                 found_nutrition = False
                 mulige_koder = ['carbohydrates', 'carbohydrate', 'karbohydrater', 'karbohydrat']
-                
                 for n in nutr:
                     if n.get('code', '').lower() in mulige_koder:
                         karbo_api = n.get('amount', 0)
@@ -196,6 +204,13 @@ with tab2:
                 
                 vekt_api = produkt.get('weight', 0)
                 
+                # --- ANTALL DETEKTIV ---
+                # Her bruker vi den nye funksjonen vår!
+                antall_funnet = finn_antall_i_tekst(beskrivelse)
+                if not antall_funnet:
+                    # Prøv å se i navnet også (f.eks "Grillpølse 10pk")
+                    antall_funnet = finn_antall_i_tekst(navn)
+
                 # UI VISNING
                 c_img, c_info = st.columns([1, 3])
                 with c_img:
@@ -203,23 +218,23 @@ with tab2:
                         st.image(produkt['image'], width=100)
                 with c_info:
                     st.subheader(navn)
-                    
                     if found_nutrition:
                         st.write(f"📊 **Karbo:** {karbo_api}g per 100g")
                     else:
-                        st.error("⚠️ Fant ingen karbo-data på dette produktet!")
-                    
+                        st.error("⚠️ Fant ingen karbo-data!")
                     if vekt_api:
                         st.write(f"⚖️ **Vekt registrert:** {vekt_api}g")
+                    
+                    # Vis info om detektiven fant noe
+                    if antall_funnet:
+                        st.success(f"🕵️ Fant antall i teksten: **{antall_funnet} stk**")
                 
-                # DEBUG DATA
                 with st.expander("🛠️ Se rådata (For feilsøking)"):
                     st.write(produkt)
 
                 # KALKULATOR
                 st.markdown("---")
                 c_kalk1, c_kalk2 = st.columns(2)
-                
                 mengde_nett = 0
                 beskrivelse_nett = ""
                 
@@ -230,10 +245,12 @@ with tab2:
                         mengde_nett = st.number_input("Antall gram:", 100, step=10, key="nett_gram")
                         beskrivelse_nett = f"{mengde_nett} g"
                     else:
-                        st.caption(f"Vi fant vekten: {vekt_api}g. Vet du antallet?")
                         start_vekt = float(vekt_api) if vekt_api else None
                         pk_vekt = st.number_input("Totalvekt (g):", value=start_vekt, step=1.0, key="nett_pk_vekt")
-                        pk_ant = st.number_input("Antall i pakke:", min_value=1, value=1, key="nett_pk_ant")
+                        
+                        # HER ER MAGIEN: Hvis detektiven fant et tall, sett det som standard!
+                        start_antall = int(antall_funnet) if antall_funnet else 1
+                        pk_ant = st.number_input("Antall i pakke:", min_value=1, value=start_antall, key="nett_pk_ant")
                         
                         if pk_vekt:
                             enhet_vekt = pk_vekt / pk_ant
@@ -260,7 +277,6 @@ with tab2:
 # --- KURV ---
 st.markdown("---")
 st.header("🍽️ Dagens Måltid")
-
 if st.session_state['kurv']:
     kurv_df = pd.DataFrame(st.session_state['kurv'])
     st.table(kurv_df[['navn', 'beskrivelse', 'karbo']])
