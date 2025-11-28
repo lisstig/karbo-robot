@@ -1,57 +1,55 @@
 # 🤖 Karbo-Robot
 
-**Din smarte assistent for karbohydrattelling – tilpasset norske matvarer.**
+**Din smarte assistent for karbohydrattelling – nå med produktsøk i sanntid!**
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://karbo-robot-scqkaigsbowcy87ijqczdy.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://[LIM INN LINKEN TIL APPEN DIN HER])
 
 ## 📖 Hva er dette?
-Karbo-Robot er en enkel, reklamefri web-app utviklet for å gjøre hverdagen litt enklere for oss med diabetes type 1 (og spesielt for deg med insulinpumpe som MiniMed 780G, Tandem eller Omnipod).
+Karbo-Robot er en web-app utviklet for å gjøre hverdagen enklere for oss med diabetes type 1 (spesielt tilpasset insulinpumper som MiniMed 780G, Tandem eller Omnipod).
 
-Målet er å fjerne gjettingen fra måltidene. Appen fokuserer på norske merkevarer (Gilde, Hatting, Tine) og lar deg beregne nøyaktig karbohydratinnhold på sekunder.
+Appen løser problemet med å "gjette" karbohydrater ved å kombinere dine egne favoritter med et **direkte søk i norske dagligvarer**.
 
-## ✨ Hvorfor bruke Karbo-Robot?
+## ✨ Nøkkelfunksjoner
 
-I motsetning til utenlandske apper eller generelle tabeller, løser denne de "norske" problemene:
+### 1. 🌐 Smart Produktsøk (Nyhet!)
+Koblet direkte mot **Kassalapp API**. Søk på "Gilde Grillpølse" eller "Hatting", og appen henter:
+* Næringsinnhold direkte fra butikkhyllene.
+* Totalvekt på pakken.
+* **Tekst-detektiv:** Appen leser produktbeskrivelsen og finner automatisk ut hvor mange pølser/brød det er i pakken (f.eks. "6 stk").
 
-* **🌭 "Pølse-matematikk":** Vet nøyaktig hva en Gilde Grillpølse eller et Hatting pølsebrød veier. Du velger antall stk, appen regner gram.
-* **🔢 Pakke-kalkulator:** Har du en vare som mangler i listen? Skriv inn totalvekt og antall i pakken, så regner appen ut stykk-vekten for deg der og da.
-* **🍽️ Måltidskurv:** Legg til pølser, brød, potetsalat og drikke i samme "kurv" og få én totalsum du kan taste rett inn i pumpa.
-* **🔥 BBQ-Modus:** En egen funksjon for oss som er glad i grillmat! Hjelper deg å huske karbohydratene i glaze, rub og saus.
+### 2. 🌭 "Pølse-matematikk"
+Slutt å regne i hodet. Appen vet at du ikke spiser "100g pølse", men "2 pølser".
+* Den regner om fra *Totalvekt* og *Antall i pakke* til **karbohydrater per stykk**.
 
-## 🚀 Slik bruker du den
-1.  Åpne [appen](https://karbo-robot-scqkaigsbowcy87ijqczdy.streamlit.app/).
-2.  **Søk** etter matvaren (f.eks. "Karbonade").
-3.  Velg om du vil regne i **Gram** eller **Stk**.
-4.  Trykk **"Legg til i måltidet"**.
-5.  Se totalen nederst og tast inn i pumpa. 💉
+### 3. 🔥 BBQ-Modus
+For oss som er glad i røyking av kjøtt og grilling!
+* Kjøtt har 0 karbo, men glaze og rub har sukker.
+* Egen knapp for å legge til standard BBQ-tillegg (saus/glaze) slik at insulindosen blir riktig.
+
+### 4. 🛒 Måltidskurv
+Sett sammen hele middagen:
+* Legg til 2 pølser + 2 brød + potetsalat.
+* Få **én totalsum** nederst som du taster rett inn i pumpa.
+* Slett-knapp hvis du angrer.
+
+### 5. 📂 Mine Spesialiteter (Excel)
+En egen fane for dine unike matvarer som ikke finnes i butikken (hjemmelaget mat, spesielle oppskrifter).
 
 ## ℹ️ Datakilder
-Vi gjetter ikke på helsa di. Dataene er hentet fra troverdige kilder:
-* **Næringsinnhold:** [Matvaretabellen.no](https://www.matvaretabellen.no) (Mattilsynet).
-* **Vekt/Mengde:** "Mål og vekt for matvarer" (Mattilsynet/UiO) samt produsentinformasjon fra emballasje.
+Vi baserer oss på troverdige kilder:
+* **Internett-søk:** [Kassalapp.no](https://kassalapp.no) (Norske dagligvarer).
+* **Grunndata:** [Matvaretabellen.no](https://www.matvaretabellen.no) (Mattilsynet).
+* **Logikk:** Egne beregninger for stykk-vekt og BBQ.
 
-## ⚠️ Ansvarsfraskrivelse (Disclaimer)
-Dette verktøyet er utviklet som et privat hjelpemiddel og deles "som det er" (open source).
+## ⚠️ Ansvarsfraskrivelse
+Dette verktøyet er utviklet som et privat hjelpemiddel ("Open Source").
 * Appen er et supplement til egen kunnskap.
-* Sjekk alltid emballasjen på varen hvis du er usikker, da produsenter kan endre innhold.
+* Sjekk alltid emballasjen hvis du er usikker – produsenter kan endre innhold.
 * Utvikler tar ikke ansvar for eventuelle feilberegninger eller medisinsk dosering.
 
-## 🛠️ For utviklere
-Vil du kjøre denne lokalt eller bidra?
-Koden er skrevet i Python ved hjelp av [Streamlit](https://karbo-robot-scqkaigsbowcy87ijqczdy.streamlit.app/).
-
-1.  Klone repoet:
-    ```bash
-    git clone [https://github.com/lisstig/karbo-robot.git](https://github.com/lisstig/karbo-robot.git)
-    ```
-2.  Installer avhengigheter:
-    ```bash
-    pip install -r requirements.txt
-    ```
-3.  Kjør appen:
-    ```bash
-    streamlit run app.py
-    ```
+## 🛠️ Teknisk info
+Laget med Python og [Streamlit](https://streamlit.io).
+Bruker `pandas` for databehandling, `requests` for API-kall og `regex` for tekstanalyse.
 
 ---
-*Laget med ❤️ (og litt insulin) av [lisstig](https://github.com/lisstig)*
+*Laget for en enklere hverdag med MiniMed 780G.*
