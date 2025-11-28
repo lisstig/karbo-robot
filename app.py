@@ -6,7 +6,7 @@ import requests
 st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
 # --- DIN API NØKKEL ---
-API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
+API_KEY = "aiKUN2TjEqyHrZl8kKNgzbEKnbY3HqREOIEPVetQ"
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
@@ -17,10 +17,10 @@ def sok_kassalapp(sokeord):
     url = "https://kassal.app/api/v1/products"
     headers = {"Authorization": f"Bearer {API_KEY}"}
     
-    # ENDRING: Fjernet sortering på pris, økt antall til 30
+    # Henter opp til 50 varer for å være sikker på at vi får med alt
     params = {
         "search": sokeord,
-        "size": 30 
+        "size": 50
     }
     
     try:
@@ -157,23 +157,30 @@ with tab2:
         if not resultater:
             st.warning("Fant ingen varer. Prøv et annet ord.")
         else:
-            valg_liste = {f"{p['name']} ({p.get('vendor', '')})" : p for p in resultater}
+            # INFO: Viser antall treff
+            st.success(f"Fant {len(resultater)} produkter!")
+
+            # FIX: Vi lager unike nøkler ved å legge til ID, slik at alle pølser vises
+            valg_liste = {}
+            for p in resultater:
+                # Lager et navn som inneholder produsent og EAN kode for å være unik
+                ean_kode = p.get('ean', p.get('id', 'ukjent'))
+                visningsnavn = f"{p['name']} ({p.get('vendor', '')}) - {ean_kode}"
+                valg_liste[visningsnavn] = p
+
             valgt_nettvare_navn = st.selectbox("Velg produkt:", list(valg_liste.keys()), index=None)
             
             if valgt_nettvare_navn:
                 produkt = valg_liste[valgt_nettvare_navn]
                 navn = produkt['name']
                 
-                # --- SMARTERE KARBO-FINNER ---
+                # --- KARBO-DETEKTIV ---
                 nutr = produkt.get('nutrition', [])
                 karbo_api = 0
                 found_nutrition = False
-                
-                # Vi leter etter flere mulige navn på karbohydrater
                 mulige_koder = ['carbohydrates', 'carbohydrate', 'karbohydrater', 'karbohydrat']
                 
                 for n in nutr:
-                    # Sjekk om koden (i små bokstaver) er i listen vår
                     if n.get('code', '').lower() in mulige_koder:
                         karbo_api = n.get('amount', 0)
                         found_nutrition = True
@@ -181,7 +188,7 @@ with tab2:
                 
                 vekt_api = produkt.get('weight', 0)
                 
-                # UI
+                # UI VISNING
                 c_img, c_info = st.columns([1, 3])
                 with c_img:
                     if produkt.get('image'):
@@ -197,7 +204,7 @@ with tab2:
                     if vekt_api:
                         st.write(f"⚖️ **Vekt registrert:** {vekt_api}g")
                 
-                # --- DEBUGGING (HVIS DET FORTSATT ER FEIL) ---
+                # DEBUG DATA
                 with st.expander("🛠️ Se rådata (For feilsøking)"):
                     st.write(produkt)
 
