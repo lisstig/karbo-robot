@@ -74,11 +74,25 @@ with st.sidebar:
     if st.button("🔄 Oppdater data"):
         st.cache_data.clear()
         st.rerun()
+    
     st.markdown("---")
     st.header("💬 Kontakt")
     st.write("Fant du en feil eller har et ønske?")
     st.link_button("✍️ Send tilbakemelding", "https://forms.gle/xn1RnNAgcr1frzhr8")
+    
     st.markdown("---")
+    # HER ER DEN TILBAKE!
+    with st.expander("ℹ️ Om dataene"):
+        st.markdown("""
+        **Kilder:**
+        * 🥗 [Matvaretabellen.no](https://www.matvaretabellen.no)
+        * 🌐 Kassalapp.no (Produktsøk)
+        * ⚖️ Produsentinfo (Gilde, Hatting, etc.)
+        * 🔥 Egne BBQ-beregninger
+        
+        *Laget for MiniMed 780G.*
+        """)
+        
     st.info("Tips: Nett-søket husker nå hva du fant, så appen jobber raskere!")
 
 # --- UI START ---
@@ -140,8 +154,6 @@ with tab1:
                     mengde_txt += f" + saus"
             tot = (gram/100)*kb_100 + tillegg
             st.write(f"### = {tot:.1f} g karbo")
-            
-            # FIX 1: Fjernet st.rerun() her for å hindre tab-hopping
             if st.button("➕ Legg til", key="add_local"):
                 st.session_state['kurv'].append({"navn": valgt_mat, "beskrivelse": mengde_txt, "karbo": tot})
                 st.success("Lagt til!")
@@ -151,7 +163,14 @@ with tab1:
 # ==========================
 with tab2:
     st.caption("Søker i tusenvis av norske dagligvarer via Kassalapp.no")
-    nett_sok = st.text_input("Søk etter noe (f.eks 'Gilde pølse'):")
+    
+    col_sok, col_x = st.columns([6, 1])
+    with col_sok:
+        nett_sok = st.text_input("Søk etter noe (f.eks 'Gilde pølse'):", key="input_nett_sok", label_visibility="collapsed")
+    with col_x:
+        def slett_sok(): st.session_state.input_nett_sok = ""
+        st.button("❌", on_click=slett_sok, help="Tøm søkefeltet")
+    
     st.caption("💡 Tips: Får du få treff? Prøv entall (f.eks 'pølse') og færre ord.")
     
     if nett_sok:
@@ -249,42 +268,35 @@ with tab2:
                 tot_nett = (mengde_nett/100)*karbo_api + tillegg_nett
                 st.write(f"### = {tot_nett:.1f} g karbo")
                 
-                # FIX 1: Fjernet st.rerun() her også
                 if st.button("➕ Legg til i måltid", key=f"btn_{ean_id}"):
                     st.session_state['kurv'].append({"navn": navn, "beskrivelse": beskrivelse_nett, "karbo": tot_nett})
                     st.success("Lagt til!")
 
-# --- KURV (NY VERSJON MED SLETT-KNAPP) ---
+# --- KURV ---
 st.markdown("---")
 st.header("🍽️ Dagens Måltid")
 
 if st.session_state['kurv']:
-    # Overskrifter
     h1, h2, h3, h4 = st.columns([3, 4, 2, 1])
     h1.caption("Navn")
     h2.caption("Beskrivelse")
     h3.caption("Karbo")
     h4.caption("Slett")
 
-    # FIX 2: Viser hver linje med egen sletteknapp i stedet for tabell
     for i, item in enumerate(st.session_state['kurv']):
         c1, c2, c3, c4 = st.columns([3, 4, 2, 1])
         with c1: st.write(item['navn'])
         with c2: st.write(item['beskrivelse'])
         with c3: st.write(f"{item['karbo']:.1f}")
         with c4:
-            # Vi bruker unike nøkler (slett_0, slett_1) for å vite hvilken vi sletter
             if st.button("❌", key=f"slett_{i}"):
                 st.session_state['kurv'].pop(i)
-                st.rerun() # Her må vi ha rerun for å oppdatere listen umiddelbart
+                st.rerun()
 
-    # Total sum nederst
     total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
     st.markdown("---")
     col_res1, col_res2 = st.columns([2, 1])
-    with col_res1:
-        st.subheader("Totalt til Pumpa:")
-    with col_res2:
-        st.title(f"{total_sum:.1f} g")
+    with col_res1: st.subheader("Totalt til Pumpa:")
+    with col_res2: st.title(f"{total_sum:.1f} g")
 else:
     st.caption("Kurven er tom.")
