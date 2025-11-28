@@ -81,7 +81,6 @@ with st.sidebar:
     st.link_button("✍️ Send tilbakemelding", "https://forms.gle/xn1RnNAgcr1frzhr8")
     
     st.markdown("---")
-    
     with st.expander("ℹ️ Om dataene"):
         st.markdown("""
         **Kilder:**
@@ -102,66 +101,13 @@ if st.session_state['kurv']:
     tot_karbo = sum(i['karbo'] for i in st.session_state['kurv'])
     st.info(f"🛒 I kurven: **{len(st.session_state['kurv'])}** varer. Totalt: **{tot_karbo:.1f} g**")
 
-# --- FANER ---
-tab1, tab2 = st.tabs(["📂 Mine varer (Excel)", "🌐 Søk på nettet (Ny!)"])
+# --- ENDRET REKKEFØLGE PÅ FANER HER ---
+tab1, tab2 = st.tabs(["🌐 Søk på nettet", "📂 Mine spesialiteter (Excel)"])
 
 # ==========================
-# FANE 1: LOKAL EXCEL
+# FANE 1: KASSALAPP API (NÅ FØRST!)
 # ==========================
 with tab1:
-    if df_lokal is not None:
-        kats = sorted([str(k) for k in df_lokal['Matvaregruppe'].unique() if k])
-        valgt_kat = st.selectbox("Kategori:", ["Alle"] + kats)
-        df_vis = df_lokal if valgt_kat == "Alle" else df_lokal[df_lokal['Matvaregruppe'] == valgt_kat]
-        matvarer = sorted(df_vis['Matvare'].astype(str).unique())
-        valgt_mat = st.selectbox("Velg vare:", matvarer, index=None, placeholder="Søk i dine egne varer...")
-
-        if valgt_mat:
-            rad = df_lokal[df_lokal['Matvare'] == valgt_mat].iloc[0]
-            kb_100 = rad['Karbo_g']
-            vekt_stk = rad['Vekt_stk']
-            st.caption(f"Karbo: {kb_100}g / 100g")
-            c1, c2 = st.columns(2)
-            mengde_txt = ""
-            with c1:
-                if pd.notna(vekt_stk) and vekt_stk > 0:
-                    mode = st.radio("Enhet", ["Gram", f"Stk ({int(vekt_stk)}g)"], horizontal=True)
-                    if "Stk" in mode:
-                        ant = st.number_input("Antall:", 1.0, step=0.5)
-                        gram = ant * vekt_stk
-                        mengde_txt = f"{ant} stk"
-                    else:
-                        gram = st.number_input("Gram:", 100, step=10)
-                        mengde_txt = f"{gram} g"
-                else:
-                    gram = st.number_input("Gram:", 100, step=10)
-                    mengde_txt = f"{gram} g"
-                    with st.expander("🔢 Har du hele pakken?"):
-                        p_vekt = st.number_input("Pakkevekt (g):", min_value=0, value=None, step=1)
-                        p_ant = st.number_input("Antall i pakke:", min_value=1, value=1)
-                        if p_vekt:
-                            stk_v = p_vekt/p_ant
-                            st.write(f"1 stk = {stk_v:.0f} g")
-                            spist = st.number_input("Spist:", 1.0, step=0.5)
-                            gram = spist * stk_v
-                            mengde_txt = f"{spist} stk (fra pakke)"
-            with c2:
-                bbq = st.checkbox("Saus/Glaze?")
-                tillegg = 0
-                if bbq:
-                    g_saus = st.slider("Mengde saus (g):", 0, 150, 20)
-                    tillegg = (g_saus/100)*35
-                    mengde_txt += f" + saus"
-            tot = (gram/100)*kb_100 + tillegg
-            st.write(f"### = {tot:.1f} g karbo")
-            if st.button("➕ Legg til", key="add_local"):
-                st.session_state['kurv'].append({"navn": valgt_mat, "beskrivelse": mengde_txt, "karbo": tot})
-                st.success("Lagt til!")
-
-# ==========================
-# FANE 2: KASSALAPP API
-# ==========================
-with tab2:
     st.caption("Søker i tusenvis av norske dagligvarer via Kassalapp.no")
     
     col_sok, col_x = st.columns([6, 1])
@@ -271,6 +217,59 @@ with tab2:
                 if st.button("➕ Legg til i måltid", key=f"btn_{ean_id}"):
                     st.session_state['kurv'].append({"navn": navn, "beskrivelse": beskrivelse_nett, "karbo": tot_nett})
                     st.success("Lagt til!")
+
+# ==========================
+# FANE 2: LOKAL EXCEL (NÅ SOM FANE 2)
+# ==========================
+with tab2:
+    if df_lokal is not None:
+        kats = sorted([str(k) for k in df_lokal['Matvaregruppe'].unique() if k])
+        valgt_kat = st.selectbox("Kategori:", ["Alle"] + kats)
+        df_vis = df_lokal if valgt_kat == "Alle" else df_lokal[df_lokal['Matvaregruppe'] == valgt_kat]
+        matvarer = sorted(df_vis['Matvare'].astype(str).unique())
+        valgt_mat = st.selectbox("Velg vare:", matvarer, index=None, placeholder="Søk i dine egne varer...")
+
+        if valgt_mat:
+            rad = df_lokal[df_lokal['Matvare'] == valgt_mat].iloc[0]
+            kb_100 = rad['Karbo_g']
+            vekt_stk = rad['Vekt_stk']
+            st.caption(f"Karbo: {kb_100}g / 100g")
+            c1, c2 = st.columns(2)
+            mengde_txt = ""
+            with c1:
+                if pd.notna(vekt_stk) and vekt_stk > 0:
+                    mode = st.radio("Enhet", ["Gram", f"Stk ({int(vekt_stk)}g)"], horizontal=True)
+                    if "Stk" in mode:
+                        ant = st.number_input("Antall:", 1.0, step=0.5)
+                        gram = ant * vekt_stk
+                        mengde_txt = f"{ant} stk"
+                    else:
+                        gram = st.number_input("Gram:", 100, step=10)
+                        mengde_txt = f"{gram} g"
+                else:
+                    gram = st.number_input("Gram:", 100, step=10)
+                    mengde_txt = f"{gram} g"
+                    with st.expander("🔢 Har du hele pakken?"):
+                        p_vekt = st.number_input("Pakkevekt (g):", min_value=0, value=None, step=1)
+                        p_ant = st.number_input("Antall i pakke:", min_value=1, value=1)
+                        if p_vekt:
+                            stk_v = p_vekt/p_ant
+                            st.write(f"1 stk = {stk_v:.0f} g")
+                            spist = st.number_input("Spist:", 1.0, step=0.5)
+                            gram = spist * stk_v
+                            mengde_txt = f"{spist} stk (fra pakke)"
+            with c2:
+                bbq = st.checkbox("Saus/Glaze?")
+                tillegg = 0
+                if bbq:
+                    g_saus = st.slider("Mengde saus (g):", 0, 150, 20)
+                    tillegg = (g_saus/100)*35
+                    mengde_txt += f" + saus"
+            tot = (gram/100)*kb_100 + tillegg
+            st.write(f"### = {tot:.1f} g karbo")
+            if st.button("➕ Legg til", key="add_local"):
+                st.session_state['kurv'].append({"navn": valgt_mat, "beskrivelse": mengde_txt, "karbo": tot})
+                st.success("Lagt til!")
 
 # --- KURV ---
 st.markdown("---")
