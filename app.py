@@ -1,79 +1,43 @@
 import streamlit as st
 import pandas as pd
+import requests
 
-# --- KONFIGURASJON & SØKEORD ---
-# Her legger vi inn nøkkelord i tittelen så Google lettere finner den
-st.set_page_config(
-    page_title="Karbo-Robot: Norsk Karbokalkulator for Diabetes Type 1", 
-    page_icon="🍖",
-    layout="centered"
-)
+# --- KONFIGURASJON ---
+st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
+
+# --- DIN HEMMELIGE NØKKEL ---
+# (I fremtiden bør denne legges i Streamlit Secrets, men vi kjører den her for testing nå)
+API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
     st.session_state['kurv'] = []
 
-# --- TITTEL ---
-st.title("🤖 Karbo-Robot")
-
-if st.session_state['kurv']:
-    antall_varer = len(st.session_state['kurv'])
-    total_karbo_kurv = sum(item['karbo'] for item in st.session_state['kurv'])
-    st.info(f"🛒 Du har **{antall_varer}** ting i kurven. Total: **{total_karbo_kurv:.1f} g**")
-
-# --- SIDEBAR ---
-with st.sidebar:
-    st.header("Innstillinger")
+# --- FUNKSJON: HENT DATA FRA KASSALAPP ---
+def sok_kassalapp(sokeord):
+    url = "https://kassal.app/api/v1/products"
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    params = {
+        "search": sokeord,
+        "sort": "price_asc", # Sorterer på pris, ofte greit for å finne vanlige varer
+        "size": 10 # Henter max 10 treff
+    }
     
-    if st.button("🗑️ Tøm hele kurven"):
-        st.session_state['kurv'] = []
-        st.rerun()
-    
-    if st.button("🔄 Oppdater data"):
-        st.cache_data.clear()
-        st.rerun()
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status() # Sjekk om vi fikk feilmelding
+        data = response.json()
+        return data.get('data', []) # Returnerer listen med produkter
+    except Exception as e:
+        st.error(f"Klarte ikke koble til Kassalapp: {e}")
+        return []
 
-    st.markdown("---")
-    
-    # --- KONTAKT (Google Forms) ---
-    with st.expander("💬 Kontakt / Feilmelding"):
-        st.write("Fant du en feil, eller savner du en pølsetype? Si fra!")
-        
-        # Her limer du inn linken du kopierte fra Google Forms!
-        url_skjema = "https://forms.gle/xn1RnNAgcr1frzhr8"
-        
-        st.link_button("✍️ Åpne tilbakemeldingsskjema", url_skjema)
-        
-        st.caption("Du kan være helt anonym.")
-
-    # --- BRUKSANVISNING ---
-    with st.expander("❓ Slik bruker du appen"):
-        st.markdown("""
-        1. **Søk** etter matvare.
-        2. Velg **antall** eller **gram**.
-        3. Mangler du vekt? Bruk **Pakke-kalkulatoren**.
-        4. Trykk **"Legg til i måltidet"**.
-        5. Se **totalsummen** nederst.
-        """)
-
-    # --- OM DATAENE ---
-    with st.expander("ℹ️ Om dataene"):
-        st.markdown("""
-        **Kilder:**
-        * 🥗 [Matvaretabellen.no](https://www.matvaretabellen.no)
-        * ⚖️ Produsentinfo (Gilde, Hatting, etc.)
-        * 🔥 Egne BBQ-beregninger
-        
-        *Laget for MiniMed 780G.*
-        """)
-
-# --- LASTE DATA ---
+# --- LASTE LOKALE DATA (EXCEL) ---
 @st.cache_data
-def last_data():
+def last_lokale_data():
     try:
         df = pd.read_excel("matvarer.xlsx")
         df.columns = [str(c).lower().strip() for c in df.columns]
-
         navn_col = next((c for c in df.columns if "matvare" in c and "id" not in c), None)
         karbo_col = next((c for c in df.columns if "karbo" in c), None)
         gruppe_col = next((c for c in df.columns if "kategori" in c or "gruppe" in c), None)
@@ -82,131 +46,215 @@ def last_data():
         if navn_col and karbo_col and gruppe_col:
             cols = [navn_col, gruppe_col, karbo_col]
             if vekt_col: cols.append(vekt_col)
-            
             df = df[cols].copy()
-            
             nye_navn = {navn_col: 'Matvare', gruppe_col: 'Matvaregruppe', karbo_col: 'Karbo_g'}
             if vekt_col: nye_navn[vekt_col] = 'Vekt_stk'
-            
             df = df.rename(columns=nye_navn)
-            
             if 'Vekt_stk' not in df.columns: df['Vekt_stk'] = None
-            
             df['Matvaregruppe'] = df['Matvaregruppe'].fillna("Diverse")
             df['Karbo_g'] = pd.to_numeric(df['Karbo_g'], errors='coerce').fillna(0)
             df['Vekt_stk'] = pd.to_numeric(df['Vekt_stk'], errors='coerce')
-            
             return df
-        else:
-            st.error("Mangler kolonner i Excel.")
-            return None
-    except Exception as e:
-        st.error(f"Feil: {e}")
+        return None
+    except:
         return None
 
-df = last_data()
+df_lokal = last_lokale_data()
 
-# --- APP UI ---
-if df is not None:
-    # 1. KATEGORI
-    unike_kat = sorted([str(k) for k in df['Matvaregruppe'].unique() if k is not None])
-    valgt_kat = st.selectbox("Velg kategori (valgfritt):", ["Alle"] + unike_kat)
-
-    if valgt_kat != "Alle":
-        df_visning = df[df['Matvaregruppe'] == valgt_kat]
-    else:
-        df_visning = df
-
-    st.subheader("🔍 Finn matvare")
-
-    # 2. SØK
-    matvarer = sorted(df_visning['Matvare'].astype(str).unique())
-    valgt_mat = st.selectbox("Søk:", matvarer, index=None, placeholder="Skriv for å søke...")
-
-    if valgt_mat:
-        rad = df[df['Matvare'] == valgt_mat].iloc[0]
-        karbo_100 = rad['Karbo_g']
-        vekt_stk_db = rad['Vekt_stk']
-        kategori = rad['Matvaregruppe']
-
-        st.caption(f"Kategori: {kategori} | Karbo: {karbo_100}g pr 100g")
-
-        c1, c2 = st.columns(2)
-        beskrivelse_mengde = "" 
-        
-        with c1:
-            # SCENARIO A: Har vekt i Excel
-            if pd.notna(vekt_stk_db) and vekt_stk_db > 0:
-                enhet = st.radio("Enhet", ["Gram", f"Stk ({int(vekt_stk_db)}g)"], horizontal=True)
-                if "Stk" in enhet:
-                    antall = st.number_input("Antall stk:", value=1.0, step=1.0)
-                    mengde_i_gram = antall * vekt_stk_db
-                    beskrivelse_mengde = f"{antall} stk"
-                else:
-                    mengde_i_gram = st.number_input("Mengde (g):", value=100, step=10)
-                    beskrivelse_mengde = f"{mengde_i_gram} g"
-            
-            # SCENARIO B: Mangler vekt (Pakke-kalkulator)
-            else:
-                mengde_i_gram = st.number_input("Mengde (g):", value=100, step=10)
-                beskrivelse_mengde = f"{mengde_i_gram} g"
-
-                with st.expander("🔢 Har du hele pakken?"):
-                    pk_vekt = st.number_input("Totalvekt pakke (g):", min_value=0, value=None, step=1, placeholder="F.eks 600")
-                    pk_ant = st.number_input("Antall i pakke:", min_value=1, value=1, step=1)
-                    
-                    if pk_vekt and pk_ant:
-                        stk_vekt = pk_vekt / pk_ant
-                        st.success(f"1 stk veier ca **{stk_vekt:.0f} g**")
-                        
-                        ant_spist = st.number_input("Antall spist:", value=1.0, step=1.0)
-                        
-                        mengde_i_gram = ant_spist * stk_vekt
-                        beskrivelse_mengde = f"{ant_spist} stk (fra pakke)"
-        
-        with c2:
-            st.write("🔥 **BBQ / Saus**")
-            bbq_aktiv = st.checkbox("Legg til saus?")
-            tillegg_karbo = 0
-            if bbq_aktiv:
-                g_saus = st.slider("Mengde saus (g):", 0, 150, 20)
-                tillegg_karbo = (g_saus/100)*35
-                beskrivelse_mengde += f" + {g_saus}g saus"
-
-        mat_karbo = (mengde_i_gram / 100) * karbo_100
-        total_linje = mat_karbo + tillegg_karbo
-        
-        st.markdown(f"### = {total_linje:.1f} g karbo")
-
-        if st.button("➕ Legg til i måltidet", type="primary"):
-            nytt_element = {
-                "navn": valgt_mat,
-                "beskrivelse": beskrivelse_mengde,
-                "karbo": total_linje
-            }
-            st.session_state['kurv'].append(nytt_element)
-            st.success(f"La til {valgt_mat}!")
-            st.rerun()
-
+# --- SIDEBAR ---
+with st.sidebar:
+    st.header("Innstillinger")
+    if st.button("🗑️ Tøm kurv"):
+        st.session_state['kurv'] = []
+        st.rerun()
+    if st.button("🔄 Oppdater data"):
+        st.cache_data.clear()
+        st.rerun()
     st.markdown("---")
-    st.header("🍽️ Dagens Måltid")
+    with st.expander("💬 Kontakt"):
+        st.link_button("✍️ Gi tilbakemelding", "https://forms.gle/xn1RnNAgcr1frzhr8")
 
-    if st.session_state['kurv']:
-        kurv_df = pd.DataFrame(st.session_state['kurv'])
-        st.table(kurv_df[['navn', 'beskrivelse', 'karbo']])
+# --- UI START ---
+st.title("🤖 Karbo-Robot")
+
+if st.session_state['kurv']:
+    tot_karbo = sum(i['karbo'] for i in st.session_state['kurv'])
+    st.info(f"🛒 I kurven: **{len(st.session_state['kurv'])}** varer. Totalt: **{tot_karbo:.1f} g**")
+
+# --- FANER ---
+tab1, tab2 = st.tabs(["📂 Mine varer (Excel)", "🌐 Søk på nettet (Ny!)"])
+
+# ==========================
+# FANE 1: LOKAL EXCEL
+# ==========================
+with tab1:
+    if df_lokal is not None:
+        kats = sorted([str(k) for k in df_lokal['Matvaregruppe'].unique() if k])
+        valgt_kat = st.selectbox("Kategori:", ["Alle"] + kats)
+        df_vis = df_lokal if valgt_kat == "Alle" else df_lokal[df_lokal['Matvaregruppe'] == valgt_kat]
         
-        total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
+        matvarer = sorted(df_vis['Matvare'].astype(str).unique())
+        valgt_mat = st.selectbox("Velg vare:", matvarer, index=None, placeholder="Søk i dine egne varer...")
+
+        if valgt_mat:
+            rad = df_lokal[df_lokal['Matvare'] == valgt_mat].iloc[0]
+            kb_100 = rad['Karbo_g']
+            vekt_stk = rad['Vekt_stk']
+            
+            st.caption(f"Karbo: {kb_100}g / 100g")
+            
+            c1, c2 = st.columns(2)
+            mengde_txt = ""
+            with c1:
+                if pd.notna(vekt_stk) and vekt_stk > 0:
+                    mode = st.radio("Enhet", ["Gram", f"Stk ({int(vekt_stk)}g)"], horizontal=True)
+                    if "Stk" in mode:
+                        ant = st.number_input("Antall:", 1.0, step=0.5)
+                        gram = ant * vekt_stk
+                        mengde_txt = f"{ant} stk"
+                    else:
+                        gram = st.number_input("Gram:", 100, step=10)
+                        mengde_txt = f"{gram} g"
+                else:
+                    gram = st.number_input("Gram:", 100, step=10)
+                    mengde_txt = f"{gram} g"
+                    
+                    # Pakke-hjelp i Excel-fanen også
+                    with st.expander("🔢 Har du hele pakken?"):
+                        p_vekt = st.number_input("Pakkevekt (g):", min_value=0, value=None, step=1)
+                        p_ant = st.number_input("Antall i pakke:", min_value=1, value=1)
+                        if p_vekt:
+                            stk_v = p_vekt/p_ant
+                            st.write(f"1 stk = {stk_v:.0f} g")
+                            spist = st.number_input("Spist:", 1.0, step=0.5)
+                            gram = spist * stk_v
+                            mengde_txt = f"{spist} stk (fra pakke)"
+
+            with c2:
+                bbq = st.checkbox("Saus/Glaze?")
+                tillegg = 0
+                if bbq:
+                    g_saus = st.slider("Mengde saus (g):", 0, 150, 20)
+                    tillegg = (g_saus/100)*35
+                    mengde_txt += f" + saus"
+            
+            tot = (gram/100)*kb_100 + tillegg
+            st.write(f"### = {tot:.1f} g karbo")
+            
+            if st.button("➕ Legg til", key="add_local"):
+                st.session_state['kurv'].append({"navn": valgt_mat, "beskrivelse": mengde_txt, "karbo": tot})
+                st.rerun()
+
+# ==========================
+# FANE 2: KASSALAPP API
+# ==========================
+with tab2:
+    st.caption("Søker i tusenvis av norske dagligvarer via Kassalapp.no")
+    nett_sok = st.text_input("Søk etter noe (f.eks 'Gilde pølse'):")
+    
+    if nett_sok:
+        resultater = sok_kassalapp(nett_sok)
         
-        st.markdown("---")
-        col_res1, col_res2 = st.columns([2, 1])
-        with col_res1:
-            st.subheader("Totalt til Pumpa (MiniMed):")
-        with col_res2:
-            st.title(f"{total_sum:.1f} g")
+        if not resultater:
+            st.warning("Fant ingen varer. Prøv et annet ord.")
+        else:
+            # Vis resultatene som en liste man kan velge fra
+            valg_liste = {f"{p['name']} ({p.get('vendor', '')})" : p for p in resultater}
+            valgt_nettvare_navn = st.selectbox("Velg produkt:", list(valg_liste.keys()), index=None)
             
-        if st.button("Angre siste"):
-            st.session_state['kurv'].pop()
-            st.rerun()
-            
-    else:
-        st.caption("Kurven er tom. Søk og legg til matvarer over.")
+            if valgt_nettvare_navn:
+                produkt = valg_liste[valgt_nettvare_navn]
+                
+                # Hent ut data fra API-et
+                navn = produkt['name']
+                # Prøv å finne karbo i næringsinnholdet
+                nutr = produkt.get('nutrition', [])
+                karbo_api = 0
+                for n in nutr:
+                    if n['code'] == 'carbohydrates':
+                        karbo_api = n['amount']
+                        break
+                
+                # Prøv å finne vekt
+                vekt_api = produkt.get('weight', 0) # Ofte i gram
+                
+                # --- VISNING AV API-DATA ---
+                c_img, c_info = st.columns([1, 3])
+                with c_img:
+                    if produkt.get('image'):
+                        st.image(produkt['image'], width=100)
+                with c_info:
+                    st.subheader(navn)
+                    st.write(f"📊 **Karbo:** {karbo_api}g per 100g")
+                    if vekt_api:
+                        st.write(f"⚖️ **Vekt registrert:** {vekt_api}g")
+                
+                # --- KALKULATOR FOR NETTVARE ---
+                st.markdown("---")
+                c_kalk1, c_kalk2 = st.columns(2)
+                
+                mengde_nett = 0
+                beskrivelse_nett = ""
+                
+                with c_kalk1:
+                    # Vi bruker pakke-kalkulatoren som standard for API-varer
+                    # fordi vi ofte finner totalvekt, men ikke "antall pølser"
+                    valg_type = st.radio("Hvordan vil du regne?", ["Gram", "Hele pakken/Stk"], horizontal=True)
+                    
+                    if valg_type == "Gram":
+                        mengde_nett = st.number_input("Antall gram:", 100, step=10, key="nett_gram")
+                        beskrivelse_nett = f"{mengde_nett} g"
+                    else:
+                        st.caption(f"Vi fant vekten: {vekt_api}g. Vet du antallet?")
+                        # Fyll inn vekten fra API automatisk hvis vi fant den!
+                        start_vekt = float(vekt_api) if vekt_api else None
+                        
+                        pk_vekt = st.number_input("Totalvekt (g):", value=start_vekt, step=1.0, key="nett_pk_vekt")
+                        pk_ant = st.number_input("Antall i pakke:", min_value=1, value=1, key="nett_pk_ant")
+                        
+                        if pk_vekt:
+                            enhet_vekt = pk_vekt / pk_ant
+                            st.write(f"👉 1 stk veier ca **{enhet_vekt:.0f} g**")
+                            
+                            ant_spist = st.number_input("Antall du spiser:", 1.0, step=0.5, key="nett_spist")
+                            mengde_nett = ant_spist * enhet_vekt
+                            beskrivelse_nett = f"{ant_spist} stk ({navn})"
+
+                with c_kalk2:
+                    bbq_nett = st.checkbox("Saus/Glaze?", key="bbq_nett")
+                    tillegg_nett = 0
+                    if bbq_nett:
+                        g_saus = st.slider("Saus (g):", 0, 150, 20, key="slider_nett")
+                        tillegg_nett = (g_saus/100)*35
+                        beskrivelse_nett += " + saus"
+
+                # Resultat
+                tot_nett = (mengde_nett/100)*karbo_api + tillegg_nett
+                st.write(f"### = {tot_nett:.1f} g karbo")
+                
+                if st.button("➕ Legg til i måltid", key="btn_nett"):
+                    st.session_state['kurv'].append({"navn": navn, "beskrivelse": beskrivelse_nett, "karbo": tot_nett})
+                    st.rerun()
+
+
+# --- KURV VISNING (FELLES) ---
+st.markdown("---")
+st.header("🍽️ Dagens Måltid")
+
+if st.session_state['kurv']:
+    kurv_df = pd.DataFrame(st.session_state['kurv'])
+    st.table(kurv_df[['navn', 'beskrivelse', 'karbo']])
+    
+    total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
+    
+    col_res1, col_res2 = st.columns([2, 1])
+    with col_res1:
+        st.subheader("Totalt til Pumpa:")
+    with col_res2:
+        st.title(f"{total_sum:.1f} g")
+        
+    if st.button("Angre siste"):
+        st.session_state['kurv'].pop()
+        st.rerun()
+else:
+    st.caption("Kurven er tom.")
