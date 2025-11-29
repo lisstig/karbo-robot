@@ -136,7 +136,6 @@ if nett_sok:
                 valg_type = st.radio("Regnemåte:", ["Gram", "Hele pakken/Stk"], horizontal=True, key=f"radio_{ean_id}")
                 
                 if valg_type == "Gram":
-                    # FIX: Satt min_value=0, og value=100 som standard
                     mengde_nett = st.number_input("Antall gram:", min_value=0, value=100, step=10, key=f"gram_{ean_id}")
                     beskrivelse_nett = f"{mengde_nett} g"
                 else:
@@ -191,7 +190,15 @@ if st.session_state['kurv']:
     h3.caption("Karbo")
     h4.caption("Slett")
 
+    # Sjekk om vi har brødmat i kurven
+    har_brødmat = False
+    brød_ord = ['brød', 'knekkebrød', 'rundstykke', 'lompe', 'baguett', 'ciabatta', 'polarbrød']
+
     for i, item in enumerate(st.session_state['kurv']):
+        # Sjekk hver vare mot listen
+        if any(ord in item['navn'].lower() for ord in brød_ord):
+            har_brødmat = True
+
         c1, c2, c3, c4 = st.columns([3, 4, 2, 1])
         with c1: st.write(item['navn'])
         with c2: st.write(item['beskrivelse'])
@@ -200,6 +207,17 @@ if st.session_state['kurv']:
             if st.button("❌", key=f"slett_{i}"):
                 st.session_state['kurv'].pop(i)
                 st.rerun()
+
+    # --- PÅLEGGS-HJELPEREN (Vises kun hvis brød er i kurven) ---
+    if har_brødmat:
+        with st.expander("🍞 Huskeregel for pålegg (fra bildet ditt)"):
+            st.info("""
+            **Kommer det fra dyr eller er det ubearbeidet? 👉 Lavkarbo**
+            * 🧀 Ost, kjøtt, egg, smør, fiskepålegg = **Veldig lite/ingen karbo**.
+            
+            **Er det søtet, bearbeidet eller fra frukt? 👉 Mer karbo**
+            * 🍓 Syltetøy, brunost, sjokopålegg, prim = **Må telles!**
+            """)
 
     total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
     st.markdown("---")
