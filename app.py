@@ -184,21 +184,34 @@ st.markdown("---")
 st.header("🍽️ Dagens Måltid")
 
 if st.session_state['kurv']:
+    # 1. SJEKK OM VI HAR BRØDMAT (Detektiven flyttet opp hit)
+    har_brødmat = False
+    brød_liste = ['brød', 'rundstykke', 'lompe', 'baguett', 'ciabatta', 'polarbrød', 'knekkebrød', 'skive']
+    
+    # Vi går gjennom alt i kurven for å se etter brødvarer
+    for ting in st.session_state['kurv']:
+        navn_liten = ting['navn'].lower()
+        for b in brød_liste:
+            if b in navn_liten:
+                har_brødmat = True
+                break
+    
+    # 2. VIS HUSKEREGEL HVIS VI FANT BRØD
+    if har_brødmat:
+        st.info("""
+        **🍞 Huskeregel for pålegg:**
+        * 🧀 Ost, kjøtt, egg, fisk = **0 karbo** (Trenger ikke legges inn).
+        * 🍓 Syltetøy, brunost, prim, sjoko = **Må telles!**
+        """)
+
+    # 3. VIS HANDLELISTEN
     h1, h2, h3, h4 = st.columns([3, 4, 2, 1])
     h1.caption("Navn")
     h2.caption("Beskrivelse")
     h3.caption("Karbo")
     h4.caption("Slett")
 
-    # Sjekk om vi har brødmat i kurven
-    har_brødmat = False
-    brød_ord = ['brød', 'knekkebrød', 'rundstykke', 'lompe', 'baguett', 'ciabatta', 'polarbrød']
-
     for i, item in enumerate(st.session_state['kurv']):
-        # Sjekk hver vare mot listen
-        if any(ord in item['navn'].lower() for ord in brød_ord):
-            har_brødmat = True
-
         c1, c2, c3, c4 = st.columns([3, 4, 2, 1])
         with c1: st.write(item['navn'])
         with c2: st.write(item['beskrivelse'])
@@ -208,17 +221,7 @@ if st.session_state['kurv']:
                 st.session_state['kurv'].pop(i)
                 st.rerun()
 
-    # --- PÅLEGGS-HJELPEREN (Vises kun hvis brød er i kurven) ---
-    if har_brødmat:
-        with st.expander("🍞 Huskeregel for pålegg (fra bildet ditt)"):
-            st.info("""
-            **Kommer det fra dyr eller er det ubearbeidet? 👉 Lavkarbo**
-            * 🧀 Ost, kjøtt, egg, smør, fiskepålegg = **Veldig lite/ingen karbo**.
-            
-            **Er det søtet, bearbeidet eller fra frukt? 👉 Mer karbo**
-            * 🍓 Syltetøy, brunost, sjokopålegg, prim = **Må telles!**
-            """)
-
+    # 4. TOTALSUM
     total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
     st.markdown("---")
     col_res1, col_res2 = st.columns([2, 1])
@@ -226,5 +229,11 @@ if st.session_state['kurv']:
         st.subheader("Totalt til Pumpa:")
     with col_res2:
         st.title(f"{total_sum:.1f} g")
+        
+    # Knapp for å tømme alt (kjekt å ha nederst også)
+    if st.button("🗑️ Tøm hele kurven", key="tom_bunn"):
+        st.session_state['kurv'] = []
+        st.rerun()
+
 else:
     st.caption("Kurven er tom.")
