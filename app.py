@@ -125,7 +125,14 @@ if nett_sok:
                 if vekt_api: st.write(f"⚖️ **Vekt:** {vekt_api}g")
                 if antall_funnet: st.success(f"🕵️ Fant antall i pakken: **{antall_funnet} stk**")
             
-            with st.expander("🛠️ Se rådata"): st.write(produkt)
+            # --- ENDRET HER: RÅDATA I TABELL ---
+            with st.expander("🛠️ Se rådata (Tabell)"):
+                # Vi konverterer dataene til en liste med rader for tabellen
+                # Vi gjør om alt til tekst (str) for at tabellen ikke ska kræsje på lister
+                data_for_tabell = {k: str(v) for k, v in produkt.items()}
+                df_raw = pd.DataFrame(data_for_tabell.items(), columns=["Egenskap", "Verdi"])
+                st.table(df_raw)
+            
             st.markdown("---")
             
             c_kalk1, c_kalk2 = st.columns(2)
@@ -184,32 +191,25 @@ st.markdown("---")
 st.header("🍽️ Dagens Måltid")
 
 if st.session_state['kurv']:
-    # 1. SJEKK OM VI HAR BRØDMAT (Detektiven flyttet opp hit)
-    har_brødmat = False
-    brød_liste = ['brød', 'rundstykke', 'lompe', 'baguett', 'ciabatta', 'polarbrød', 'knekkebrød', 'skive']
-    
-    # Vi går gjennom alt i kurven for å se etter brødvarer
-    for ting in st.session_state['kurv']:
-        navn_liten = ting['navn'].lower()
-        for b in brød_liste:
-            if b in navn_liten:
-                har_brødmat = True
-                break
-    
-    # 2. VIS HUSKEREGEL HVIS VI FANT BRØD
-    if har_brødmat:
-        st.info("""
-        **🍞 Huskeregel for pålegg:**
-        * 🧀 Ost, kjøtt, egg, fisk = **0 karbo** (Trenger ikke legges inn).
-        * 🍓 Syltetøy, brunost, prim, sjoko = **Må telles!**
-        """)
-
-    # 3. VIS HANDLELISTEN
     h1, h2, h3, h4 = st.columns([3, 4, 2, 1])
     h1.caption("Navn")
     h2.caption("Beskrivelse")
     h3.caption("Karbo")
     h4.caption("Slett")
+
+    # Sjekk om vi har brødmat
+    har_brødmat = False
+    brød_ord = ['brød', 'knekkebrød', 'rundstykke', 'lompe', 'baguett', 'ciabatta', 'polarbrød', 'skive']
+    for ting in st.session_state['kurv']:
+        if any(b in ting['navn'].lower() for b in brød_ord):
+            har_brødmat = True
+
+    if har_brødmat:
+        st.info("""
+        **🍞 Huskeregel for pålegg:**
+        * 🧀 Ost, kjøtt, egg, fisk = **0 karbo**.
+        * 🍓 Syltetøy, brunost, prim, sjoko = **Må telles!**
+        """)
 
     for i, item in enumerate(st.session_state['kurv']):
         c1, c2, c3, c4 = st.columns([3, 4, 2, 1])
@@ -221,7 +221,6 @@ if st.session_state['kurv']:
                 st.session_state['kurv'].pop(i)
                 st.rerun()
 
-    # 4. TOTALSUM
     total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
     st.markdown("---")
     col_res1, col_res2 = st.columns([2, 1])
@@ -229,11 +228,9 @@ if st.session_state['kurv']:
         st.subheader("Totalt til Pumpa:")
     with col_res2:
         st.title(f"{total_sum:.1f} g")
-        
-    # Knapp for å tømme alt (kjekt å ha nederst også)
+    
     if st.button("🗑️ Tøm hele kurven", key="tom_bunn"):
         st.session_state['kurv'] = []
         st.rerun()
-
 else:
     st.caption("Kurven er tom.")
