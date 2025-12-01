@@ -8,7 +8,7 @@ st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
 # --- DIN API NØKKEL ---
 # HUSK: Bytt ut teksten under med din nye nøkkel fra Kassalapp.no!
-API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
+API_KEY = "LIM_INN_DEN_NYE_NØKKELEN_DIN_HER"
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
@@ -85,14 +85,27 @@ if nett_sok:
     if not resultater:
         st.warning("Fant ingen varer. Prøv et annet ord.")
     else:
-        st.success(f"Fant {len(resultater)} produkter!")
+        # --- NY LOGIKK: FJERN DUPLIKATER ---
         valg_liste = {}
-        for i, p in enumerate(resultater):
+        unike_produkter = set() # Her lagrer vi navnene vi har sett
+        
+        teller = 1
+        for p in resultater:
             navn = p['name']
             vendor = p.get('vendor', '')
-            ean = p.get('ean', str(i))
-            visningsnavn = f"{i+1}. {navn} ({vendor}) {ean}"
-            valg_liste[visningsnavn] = p
+            
+            # Vi lager en "signatur" for produktet. Hvis navn og produsent er likt, er det en kopi.
+            signatur = f"{navn}_{vendor}".lower()
+            
+            if signatur not in unike_produkter:
+                unike_produkter.add(signatur)
+                # Legg til i listen
+                ean = p.get('ean', '')
+                visningsnavn = f"{teller}. {navn} ({vendor})"
+                valg_liste[visningsnavn] = p
+                teller += 1
+
+        st.success(f"Fant {len(resultater)} treff (viser {len(valg_liste)} unike produkter)")
 
         valgt_nettvare_navn = st.selectbox("Velg produkt:", list(valg_liste.keys()), index=None)
         
@@ -125,7 +138,7 @@ if nett_sok:
                 if vekt_api: st.write(f"⚖️ **Vekt:** {vekt_api}g")
                 if antall_funnet: st.success(f"🕵️ Fant antall i pakken: **{antall_funnet} stk**")
             
-            # --- ENDRET HER: expanded=False ---
+            # --- RÅDATA ---
             with st.expander("🛠️ Se rådata (Teknisk info)"):
                 st.json(produkt, expanded=False)
             
