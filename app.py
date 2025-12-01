@@ -8,7 +8,7 @@ st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
 # --- DIN API NØKKEL ---
 # HUSK: Bytt ut teksten under med din nye nøkkel fra Kassalapp.no!
-API_KEY = "LIM_INN_DEN_NYE_NØKKELEN_DIN_HER"
+API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
@@ -60,7 +60,7 @@ with st.sidebar:
         *Laget for insulinpumper.*
         """)
         
-    st.info("Tips: Nett-søket husker nå hva du fant, så appen jobber raskere!")
+    st.info("Tips: Bruk 'Scan'-knappen på mobiltastaturet ditt i søkefeltet for å scanne strekkoder!")
 
 # --- UI START ---
 st.title("🤖 Karbo-Robot")
@@ -73,7 +73,7 @@ if st.session_state['kurv']:
 # --- SØKEFELT ---
 col_sok, col_x = st.columns([6, 1])
 with col_sok:
-    nett_sok = st.text_input("Søk etter noe (f.eks 'Gilde pølse'):", key="input_nett_sok", label_visibility="collapsed", placeholder="Søk her...")
+    nett_sok = st.text_input("Søk (navn eller scan strekkode):", key="input_nett_sok", label_visibility="collapsed", placeholder="Søk eller scan EAN...")
 with col_x:
     def slett_sok(): st.session_state.input_nett_sok = ""
     st.button("❌", on_click=slett_sok, help="Tøm søkefeltet")
@@ -83,29 +83,29 @@ st.caption("💡 Tips: Får du få treff? Prøv entall (f.eks 'pølse') og færr
 if nett_sok:
     resultater = sok_kassalapp(nett_sok)
     if not resultater:
-        st.warning("Fant ingen varer. Prøv et annet ord.")
+        st.warning("Fant ingen varer. Prøv et annet ord eller sjekk strekkoden.")
     else:
-        # --- NY LOGIKK: FJERN DUPLIKATER ---
-        valg_liste = {}
-        unike_produkter = set() # Her lagrer vi navnene vi har sett
+        st.success(f"Fant {len(resultater)} produkter!")
         
-        teller = 1
-        for p in resultater:
+        # --- BYGGER LISTEN MED BUTIKKNAVN OG PRIS ---
+        valg_liste = {}
+        for i, p in enumerate(resultater):
             navn = p['name']
-            vendor = p.get('vendor', '')
             
-            # Vi lager en "signatur" for produktet. Hvis navn og produsent er likt, er det en kopi.
-            signatur = f"{navn}_{vendor}".lower()
+            # Hent butikknavn (ligger inni 'store'-objektet)
+            butikk_obj = p.get('store')
+            if butikk_obj:
+                butikk = butikk_obj.get('name', 'Ukjent')
+            else:
+                butikk = "Ukjent butikk"
             
-            if signatur not in unike_produkter:
-                unike_produkter.add(signatur)
-                # Legg til i listen
-                ean = p.get('ean', '')
-                visningsnavn = f"{teller}. {navn} ({vendor})"
-                valg_liste[visningsnavn] = p
-                teller += 1
-
-        st.success(f"Fant {len(resultater)} treff (viser {len(valg_liste)} unike produkter)")
+            # Hent pris
+            pris = p.get('current_price')
+            pris_tekst = f"{pris} kr" if pris else "Ingen pris"
+            
+            # Lager visningsnavnet
+            visningsnavn = f"{i+1}. {navn} ({butikk}) - {pris_tekst}"
+            valg_liste[visningsnavn] = p
 
         valgt_nettvare_navn = st.selectbox("Velg produkt:", list(valg_liste.keys()), index=None)
         
@@ -138,7 +138,6 @@ if nett_sok:
                 if vekt_api: st.write(f"⚖️ **Vekt:** {vekt_api}g")
                 if antall_funnet: st.success(f"🕵️ Fant antall i pakken: **{antall_funnet} stk**")
             
-            # --- RÅDATA ---
             with st.expander("🛠️ Se rådata (Teknisk info)"):
                 st.json(produkt, expanded=False)
             
