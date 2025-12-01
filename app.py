@@ -125,13 +125,9 @@ if nett_sok:
                 if vekt_api: st.write(f"⚖️ **Vekt:** {vekt_api}g")
                 if antall_funnet: st.success(f"🕵️ Fant antall i pakken: **{antall_funnet} stk**")
             
-            # --- ENDRET HER: RÅDATA I TABELL ---
-            with st.expander("🛠️ Se rådata (Tabell)"):
-                # Vi konverterer dataene til en liste med rader for tabellen
-                # Vi gjør om alt til tekst (str) for at tabellen ikke ska kræsje på lister
-                data_for_tabell = {k: str(v) for k, v in produkt.items()}
-                df_raw = pd.DataFrame(data_for_tabell.items(), columns=["Egenskap", "Verdi"])
-                st.table(df_raw)
+          # --- ENDRET HER: BRUKER JSON I STEDET FOR TABELL ---
+            with st.expander("🛠️ Se rådata (Teknisk info)"):
+                st.json(produkt)
             
             st.markdown("---")
             
