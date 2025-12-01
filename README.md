@@ -2,7 +2,7 @@
 
 **Din smarte assistent for karbohydrattelling – søk direkte i norske dagligvarer.**
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)]([https://[LIM INN LINKEN TIL APPEN DIN HER](https://karbo-robot-scqkaigsbowcy87ijqczdy.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://karbo-robot-scqkaigsbowcy87ijqczdy.streamlit.app/)
 
 ## 📖 Hva er dette?
 Karbo-Robot er en rask web-app utviklet for å gjøre hverdagen enklere for oss med diabetes type 1 (spesielt tilpasset insulinpumper som MiniMed 780G, Tandem eller Omnipod).
