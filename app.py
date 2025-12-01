@@ -125,9 +125,9 @@ if nett_sok:
                 if vekt_api: st.write(f"⚖️ **Vekt:** {vekt_api}g")
                 if antall_funnet: st.success(f"🕵️ Fant antall i pakken: **{antall_funnet} stk**")
             
-          # --- ENDRET HER: BRUKER JSON I STEDET FOR TABELL ---
+            # --- ENDRET HER: expanded=False ---
             with st.expander("🛠️ Se rådata (Teknisk info)"):
-                st.json(produkt)
+                st.json(produkt, expanded=False)
             
             st.markdown("---")
             
