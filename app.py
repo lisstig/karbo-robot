@@ -81,11 +81,14 @@ with col_x:
 st.caption("💡 Tips: Får du få treff? Prøv entall (f.eks 'pølse') og færre ord.")
 
 if nett_sok:
-    resultater = sok_kassalapp(nett_sok)
-    if not resultater:
-        st.warning("Fant ingen varer. Prøv et annet ord eller sjekk strekkoden.")
-    else:
-        st.success(f"Fant {len(resultater)} produkter!")
+        resultater = sok_kassalapp(nett_sok)
+        
+        # NYTT: Sorterer slik at de ferskeste varene kommer først!
+        # Vi bruker 'updated_at'-feltet hvis det finnes.
+        resultater.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+
+        if not resultater:
+            # ... (resten er likt)
         
         # --- BYGGER LISTEN MED BUTIKKNAVN OG PRIS ---
         valg_liste = {}
