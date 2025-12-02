@@ -8,7 +8,7 @@ st.set_page_config(page_title="Karbo-Robot", page_icon="🍖")
 
 # --- DIN API NØKKEL ---
 # HUSK: Bytt ut teksten under med din nye nøkkel fra Kassalapp.no!
-API_KEY = "x2Y4R0b7NwDZpB19DRlljFlUFQmaT9aMgbzOrN8L"
+API_KEY = "LIM_INN_DEN_NYE_NØKKELEN_DIN_HER"
 
 # --- INITIALISER HUKOMMELSE ---
 if 'kurv' not in st.session_state:
@@ -83,15 +83,16 @@ st.caption("💡 Tips: Får du få treff? Prøv entall (f.eks 'pølse') og færr
 if nett_sok:
     resultater = sok_kassalapp(nett_sok)
     
-    # --- NYTT: SORTERING PÅ DATO ---
-    # Vi sorterer slik at de nyligst oppdaterte varene kommer først
-    resultater.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+    # --- NYTT: SORTERING PÅ PRIS (LAV -> HØY) ---
+    # Hvis prisen mangler (None), setter vi den til uendelig (99999) så den havner sist
+    resultater.sort(key=lambda x: x.get('current_price') if x.get('current_price') is not None else 99999)
 
     if not resultater:
         st.warning("Fant ingen varer. Prøv et annet ord eller sjekk strekkoden.")
     else:
         st.success(f"Fant {len(resultater)} produkter!")
         
+        # --- BYGGER LISTEN MED PRIS FØRST ---
         valg_liste = {}
         for i, p in enumerate(resultater):
             navn = p['name']
@@ -107,7 +108,8 @@ if nett_sok:
             pris = p.get('current_price')
             pris_tekst = f"{pris} kr" if pris else "Ingen pris"
             
-            visningsnavn = f"{i+1}. {navn} ({butikk}) - {pris_tekst}"
+            # Vi legger prisen først i teksten så det er lett å se!
+            visningsnavn = f"{i+1}. [{pris_tekst}] {navn} ({butikk})"
             valg_liste[visningsnavn] = p
 
         valgt_nettvare_navn = st.selectbox("Velg produkt:", list(valg_liste.keys()), index=None)
