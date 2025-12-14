@@ -83,34 +83,31 @@ st.caption("💡 Tips: Får du få treff? Prøv entall (f.eks 'pølse') og færr
 if nett_sok:
     resultater = sok_kassalapp(nett_sok)
     
-    # --- NYTT: SORTERING PÅ PRIS (LAV -> HØY) ---
-    # Hvis prisen mangler (None), setter vi den til uendelig (99999) så den havner sist
-    resultater.sort(key=lambda x: x.get('current_price') if x.get('current_price') is not None else 99999)
-
     if not resultater:
         st.warning("Fant ingen varer. Prøv et annet ord eller sjekk strekkoden.")
     else:
-        st.success(f"Fant {len(resultater)} produkter!")
-        
-        # --- BYGGER LISTEN MED PRIS FØRST ---
+        # --- FILTRERING AV DUPLIKATER ---
+        # Vi fjerner varer med samme navn og produsent, så listen blir ren.
         valg_liste = {}
-        for i, p in enumerate(resultater):
+        unike_produkter = set()
+        
+        teller = 1
+        for p in resultater:
             navn = p['name']
+            vendor = p.get('vendor', 'Ukjent')
             
-            # Hent butikknavn
-            butikk_obj = p.get('store')
-            if butikk_obj:
-                butikk = butikk_obj.get('name', 'Ukjent')
-            else:
-                butikk = "Ukjent butikk"
+            # Signatur for å sjekke om vi har sett varen før
+            signatur = f"{navn}_{vendor}".lower()
             
-            # Hent pris
-            pris = p.get('current_price')
-            pris_tekst = f"{pris} kr" if pris else "Ingen pris"
-            
-            # Vi legger prisen først i teksten så det er lett å se!
-            visningsnavn = f"{i+1}. [{pris_tekst}] {navn} ({butikk})"
-            valg_liste[visningsnavn] = p
+            if signatur not in unike_produkter:
+                unike_produkter.add(signatur)
+                
+                # --- REN VISNING: Kun Navn og Produsent ---
+                visningsnavn = f"{teller}. {navn} ({vendor})"
+                valg_liste[visningsnavn] = p
+                teller += 1
+
+        st.success(f"Fant {len(valg_liste)} unike produkter!")
 
         valgt_nettvare_navn = st.selectbox("Velg produkt:", list(valg_liste.keys()), index=None)
         
