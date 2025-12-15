@@ -53,7 +53,7 @@ def hent_standardvarer():
         {"navn": "Pasta (Kokt porsjon)", "vekt": "150g", "karbo": 45, "icon": "🍝", "info": "En middels middagsporsjon"},
     ]
 
-# --- SIDEBAR (NY/GJENINNSATT!) ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.header("⚙️ Innstillinger")
     if st.button("🗑️ Tøm kurv"):
@@ -83,7 +83,7 @@ st.title("🤖 Karbo-Robot")
 # --- FANE-SYSTEM ---
 tab1, tab2 = st.tabs(["🔍 Søk i butikk", "📏 Tommelfinger-regler"])
 
-# --- FANE 1: BUTIKK-SØK (Den gamle koden) ---
+# --- FANE 1: BUTIKK-SØK ---
 with tab1:
     st.caption("Søk i tusenvis av varer via Kassalapp.no")
     
@@ -118,7 +118,6 @@ with tab1:
             
             if valgt_nettvare_navn:
                 produkt = valg_liste[valgt_nettvare_navn]
-                # ... (Her henter vi ut data som før)
                 navn = produkt['name']
                 beskrivelse = produkt.get('description', '')
                 ean_id = produkt.get('ean', 'ukjent')
@@ -172,9 +171,9 @@ with tab1:
                     st.session_state['kurv'].append({"navn": navn, "beskrivelse": beskrivelse_nett, "karbo": tot_nett})
                     st.success("Lagt til!")
 
-# --- FANE 2: TOMMELFINGER-REGLER (Ny!) ---
+# --- FANE 2: TOMMELFINGER-REGLER ---
 with tab2:
-    st.header("📏 Hva inneholder 1 stk?")
+    st.header("📏 Hva inneholder 1 stk?", anchor=False) # FJERNET ANKER
     st.caption("Gjennomsnittsverdier for vanlige matvarer. Kjekt når du ikke orker å veie!")
     
     standardvarer = hent_standardvarer()
@@ -186,48 +185,8 @@ with tab2:
         # Annenhver vare i venstre/høyre kolonne
         with cols[i % 2]:
             with st.container(border=True):
-                st.markdown(f"## {vare['icon']}")
-                st.subheader(vare['navn'])
-                st.caption(f"Vekt ca: {vare['vekt']}")
-                st.markdown(f"**= {vare['karbo']} g karbo**")
+                # ENDRING HER: Bruker st.header() med anchor=False for å slippe lenke-ikonet
+                st.header(vare['icon'], anchor=False)
+                st.subheader(vare['navn'], anchor=False)
                 
-                # Legg til-knapp for disse også
-                if st.button(f"➕ Legg til", key=f"std_{i}"):
-                     st.session_state['kurv'].append({
-                         "navn": vare['navn'], 
-                         "beskrivelse": f"1 stk/porsjon ({vare['vekt']})", 
-                         "karbo": vare['karbo']
-                     })
-                     st.rerun() # Oppdater siden så kurven viser med en gang
-
-# --- KURV (FELLES FOR BEGGE FANER) ---
-st.markdown("---")
-st.header("🍽️ Dagens Måltid")
-
-if st.session_state['kurv']:
-    # Sjekk brødmat
-    har_brødmat = any(x in str(st.session_state['kurv']).lower() for x in ['brød', 'rundstykke', 'knekke'])
-    if har_brødmat:
-        st.info("🍞 Tips: Ost, skinke og egg er karbofritt. Brunost og syltetøy må telles!")
-
-    for i, item in enumerate(st.session_state['kurv']):
-        c1, c2, c3, c4 = st.columns([3, 4, 2, 1])
-        with c1: st.write(item['navn'])
-        with c2: st.write(item['beskrivelse'])
-        with c3: st.write(f"{item['karbo']:.1f}")
-        with c4:
-            if st.button("❌", key=f"slett_{i}"):
-                st.session_state['kurv'].pop(i)
-                st.rerun()
-
-    total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
-    st.markdown("---")
-    c_res1, c_res2 = st.columns([2, 1])
-    with c_res1: st.subheader("Totalt til Pumpa:")
-    with c_res2: st.title(f"{total_sum:.1f} g")
-    
-    if st.button("🗑️ Tøm hele kurven", key="tom_bunn"):
-        st.session_state['kurv'] = []
-        st.rerun()
-else:
-    st.caption("Kurven er tom.")
+                st.caption(f"Vekt ca: {vare
