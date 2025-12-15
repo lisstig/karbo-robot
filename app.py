@@ -41,6 +41,27 @@ def finn_antall_i_tekst(beskrivelse):
             return tall
     return None
 
+# --- NY FUNKSJON FOR Å LAGRE REGLER (CALLBACK) ---
+def lagre_ny_regel():
+    # Henter verdiene fra tekstboksene
+    navn = st.session_state.input_navn
+    vekt = st.session_state.input_vekt
+    karbo = st.session_state.input_karbo
+    icon = st.session_state.input_icon
+
+    if navn:
+        ny_regel = {"navn": navn, "vekt": vekt, "karbo": karbo, "icon": icon}
+        st.session_state['standardvarer'].append(ny_regel)
+        
+        # Her tømmer vi feltene FØR siden tegnes på nytt - det er trygt!
+        st.session_state.input_navn = ""
+        st.session_state.input_vekt = ""
+        st.session_state.input_karbo = 0.0
+        st.session_state.input_icon = "🍽️"
+    else:
+        # Hvis navn mangler, gjør vi ingenting (brukeren ser at ingenting skjedde)
+        pass
+
 @st.cache_data(show_spinner=False) 
 def sok_kassalapp(sokeord):
     url = "https://kassal.app/api/v1/products"
@@ -176,32 +197,18 @@ with tab1:
 with tab2:
     st.header("📏 Hva inneholder 1 stk?", anchor=False)
     
-    # --- SKJEMA FOR Å LEGGE TIL NY VARE (NÅ UTEN st.form) ---
     with st.expander("➕ Legg til ny tommelfinger-regel"):
         c1, c2 = st.columns(2)
-        # Vi bruker keys her for å kunne tømme dem senere
-        ny_navn = c1.text_input("Navn (f.eks. Bolle)", placeholder="Navn på matvare", key="input_navn")
-        ny_icon = c2.text_input("Emoji (f.eks. 🥐)", value="🍽️", key="input_icon")
+        # Vi oppretter feltene, men logikken for lagring skjer nå i 'lagre_ny_regel' funksjonen
+        c1.text_input("Navn (f.eks. Bolle)", placeholder="Navn på matvare", key="input_navn")
+        c2.text_input("Emoji (f.eks. 🥐)", value="🍽️", key="input_icon")
         
         c3, c4 = st.columns(2)
-        ny_vekt = c3.text_input("Vekt-tekst (f.eks. 60g)", placeholder="Ca. vekt", key="input_vekt")
-        ny_karbo = c4.number_input("Karbo per stk (gram)", min_value=0.0, step=1.0, key="input_karbo")
+        c3.text_input("Vekt-tekst (f.eks. 60g)", placeholder="Ca. vekt", key="input_vekt")
+        c4.number_input("Karbo per stk (gram)", min_value=0.0, step=1.0, key="input_karbo")
         
-        # Vanlig knapp, reagerer IKKE på Enter i tekstfeltene
-        if st.button("Lagre ny regel"):
-            if ny_navn:
-                ny_regel = {"navn": ny_navn, "vekt": ny_vekt, "karbo": ny_karbo, "icon": ny_icon}
-                st.session_state['standardvarer'].append(ny_regel)
-                st.success(f"La til {ny_navn}!")
-                
-                # Tøm feltene og oppdater siden
-                st.session_state['input_navn'] = ""
-                st.session_state['input_vekt'] = ""
-                st.session_state['input_icon'] = "🍽️"
-                st.session_state['input_karbo'] = 0.0
-                st.rerun()
-            else:
-                st.error("Du må skrive et navn.")
+        # VIKTIG: Vi bruker 'on_click' for å kjøre lagre-funksjonen FØR appen laster på nytt.
+        st.button("Lagre ny regel", on_click=lagre_ny_regel)
 
     st.markdown("---")
 
