@@ -119,4 +119,115 @@ with tab1:
             if valgt_nettvare_navn:
                 produkt = valg_liste[valgt_nettvare_navn]
                 navn = produkt['name']
-                besk
+                beskrivelse = produkt.get('description', '')
+                ean_id = produkt.get('ean', 'ukjent')
+                nutr = produkt.get('nutrition', [])
+                karbo_api = 0
+                for n in nutr:
+                    if n.get('code', '').lower() in ['carbohydrates', 'carbohydrate', 'karbohydrater', 'karbohydrat']:
+                        karbo_api = n.get('amount', 0); break
+                vekt_api = produkt.get('weight', 0)
+                antall_funnet = finn_antall_i_tekst(beskrivelse)
+                if not antall_funnet: antall_funnet = finn_antall_i_tekst(navn)
+
+                c_img, c_info = st.columns([1, 3])
+                with c_img:
+                    if produkt.get('image'): st.image(produkt['image'], width=100)
+                with c_info:
+                    st.subheader(navn)
+                    st.write(f"📊 **Karbo:** {karbo_api}g per 100g")
+                
+                c_kalk1, c_kalk2 = st.columns(2)
+                mengde_nett = 0
+                beskrivelse_nett = ""
+                with c_kalk1:
+                    valg_type = st.radio("Regnemåte:", ["Gram", "Hele pakken/Stk"], horizontal=True, key=f"radio_{ean_id}")
+                    if valg_type == "Gram":
+                        mengde_nett = st.number_input("Antall gram:", min_value=0, value=100, step=10, key=f"gram_{ean_id}")
+                        beskrivelse_nett = f"{mengde_nett} g"
+                    else:
+                        start_vekt = float(vekt_api) if vekt_api else 0.0
+                        start_antall = int(antall_funnet) if antall_funnet else 1
+                        with st.expander("📝 Endre vekt/antall?", expanded=(start_vekt==0)):
+                            pk_vekt = st.number_input("Totalvekt (g):", value=start_vekt, step=1.0, key=f"vekt_{ean_id}")
+                            pk_ant = st.number_input("Antall i pakke:", min_value=1, value=start_antall, key=f"ant_{ean_id}")
+                        if pk_vekt and pk_ant:
+                            enhet_vekt = pk_vekt / pk_ant
+                            st.info(f"👉 1 stk = ca **{enhet_vekt:.0f} g**")
+                            ant_spist = st.number_input("Antall du spiser:", 1.0, step=0.5, key=f"spist_{ean_id}")
+                            mengde_nett = ant_spist * enhet_vekt
+                            beskrivelse_nett = f"{ant_spist} stk ({navn})"
+                
+                with c_kalk2:
+                    tillegg_nett = 0
+                    if st.checkbox("Saus/Glaze?", key=f"bbq_{ean_id}"):
+                        g_saus = st.slider("Saus (g):", 0, 150, 20, key=f"slider_{ean_id}")
+                        tillegg_nett = (g_saus/100)*35
+                        beskrivelse_nett += " + saus"
+
+                tot_nett = (mengde_nett/100)*karbo_api + tillegg_nett
+                st.write(f"### = {tot_nett:.1f} g karbo")
+                if st.button("➕ Legg til i måltid", key=f"btn_{ean_id}"):
+                    st.session_state['kurv'].append({"navn": navn, "beskrivelse": beskrivelse_nett, "karbo": tot_nett})
+                    st.success("Lagt til!")
+
+# --- FANE 2: TOMMELFINGER-REGLER ---
+with tab2:
+    st.header("📏 Hva inneholder 1 stk?", anchor=False) # FJERNET ANKER
+    st.caption("Gjennomsnittsverdier for vanlige matvarer. Kjekt når du ikke orker å veie!")
+    
+    standardvarer = hent_standardvarer()
+    
+    # Vi lager et rutenett (grid) med 2 kolonner
+    cols = st.columns(2)
+    
+    for i, vare in enumerate(standardvarer):
+        # Annenhver vare i venstre/høyre kolonne
+        with cols[i % 2]:
+            with st.container(border=True):
+                # ENDRING HER: Bruker st.header() med anchor=False for å slippe lenke-ikonet
+                st.header(vare['icon'], anchor=False)
+                st.subheader(vare['navn'], anchor=False)
+                
+                st.caption(f"Vekt ca: {vare['vekt']}")
+                st.markdown(f"**= {vare['karbo']} g karbo**")
+                
+                if st.button(f"➕ Legg til", key=f"std_{i}"):
+                     st.session_state['kurv'].append({
+                         "navn": vare['navn'], 
+                         "beskrivelse": f"1 stk/porsjon ({vare['vekt']})", 
+                         "karbo": vare['karbo']
+                     })
+                     st.rerun()
+
+# --- KURV (FELLES FOR BEGGE FANER) ---
+st.markdown("---")
+st.header("🍽️ Dagens Måltid", anchor=False) # FJERNET ANKER HER OGSÅ
+
+if st.session_state['kurv']:
+    # Sjekk brødmat
+    har_brødmat = any(x in str(st.session_state['kurv']).lower() for x in ['brød', 'rundstykke', 'knekke'])
+    if har_brødmat:
+        st.info("🍞 Tips: Ost, skinke og egg er karbofritt. Brunost og syltetøy må telles!")
+
+    for i, item in enumerate(st.session_state['kurv']):
+        c1, c2, c3, c4 = st.columns([3, 4, 2, 1])
+        with c1: st.write(item['navn'])
+        with c2: st.write(item['beskrivelse'])
+        with c3: st.write(f"{item['karbo']:.1f}")
+        with c4:
+            if st.button("❌", key=f"slett_{i}"):
+                st.session_state['kurv'].pop(i)
+                st.rerun()
+
+    total_sum = sum(item['karbo'] for item in st.session_state['kurv'])
+    st.markdown("---")
+    c_res1, c_res2 = st.columns([2, 1])
+    with c_res1: st.subheader("Totalt til Pumpa:", anchor=False)
+    with c_res2: st.title(f"{total_sum:.1f} g", anchor=False)
+    
+    if st.button("🗑️ Tøm hele kurven", key="tom_bunn"):
+        st.session_state['kurv'] = []
+        st.rerun()
+else:
+    st.caption("Kurven er tom.")
