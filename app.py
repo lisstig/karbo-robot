@@ -53,6 +53,30 @@ def hent_standardvarer():
         {"navn": "Pasta (Kokt porsjon)", "vekt": "150g", "karbo": 45, "icon": "🍝", "info": "En middels middagsporsjon"},
     ]
 
+# --- SIDEBAR (NY/GJENINNSATT!) ---
+with st.sidebar:
+    st.header("⚙️ Innstillinger")
+    if st.button("🗑️ Tøm kurv"):
+        st.session_state['kurv'] = []
+        st.rerun()
+    
+    st.markdown("---")
+    st.header("💬 Kontakt")
+    st.write("Fant du en feil eller har et ønske?")
+    st.link_button("✍️ Send tilbakemelding", "https://forms.gle/xn1RnNAgcr1frzhr8")
+    
+    st.markdown("---")
+    with st.expander("ℹ️ Om dataene"):
+        st.markdown("""
+        **Kilder:**
+        * 🌐 Kassalapp.no (Produktsøk)
+        * 🔥 Egne BBQ-beregninger
+        
+        *Laget for insulinpumper.*
+        """)
+        
+    st.info("Tips: Bruk 'Scan'-knappen på mobiltastaturet ditt i søkefeltet for å scanne strekkoder!")
+
 # --- UI START ---
 st.title("🤖 Karbo-Robot")
 
