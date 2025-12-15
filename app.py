@@ -13,8 +13,7 @@ API_KEY = "9b0hY5ygaH5nvjPVmiFV50YiQAR76xb5jbirGmyK"
 if 'kurv' not in st.session_state:
     st.session_state['kurv'] = []
 
-# --- INITIALISER STANDARDVARER (NÅ MED HUKOMMELSE) ---
-# Vi legger listen her så den kan endres mens appen kjører
+# --- INITIALISER STANDARDVARER ---
 if 'standardvarer' not in st.session_state:
     st.session_state['standardvarer'] = [
         {"navn": "Brødskive (Grov)", "vekt": "40g", "karbo": 16, "icon": "🍞"},
@@ -61,7 +60,6 @@ with st.sidebar:
         st.rerun()
     
     st.markdown("---")
-    # En knapp for å nullstille tommelfinger-reglene hvis man angrer på endringer
     if st.button("🔄 Nullstill regler"):
         del st.session_state['standardvarer']
         st.rerun()
@@ -178,43 +176,47 @@ with tab1:
 with tab2:
     st.header("📏 Hva inneholder 1 stk?", anchor=False)
     
-    # --- SKJEMA FOR Å LEGGE TIL NY VARE ---
+    # --- SKJEMA FOR Å LEGGE TIL NY VARE (NÅ UTEN st.form) ---
     with st.expander("➕ Legg til ny tommelfinger-regel"):
-        with st.form("ny_regel_form"):
-            c1, c2 = st.columns(2)
-            ny_navn = c1.text_input("Navn (f.eks. Bolle)", placeholder="Navn på matvare")
-            ny_icon = c2.text_input("Emoji (f.eks. 🥐)", value="🍽️")
-            
-            c3, c4 = st.columns(2)
-            ny_vekt = c3.text_input("Vekt-tekst (f.eks. 60g)", placeholder="Ca. vekt")
-            ny_karbo = c4.number_input("Karbo per stk (gram)", min_value=0.0, step=1.0)
-            
-            if st.form_submit_button("Lagre ny regel"):
-                if ny_navn:
-                    ny_regel = {"navn": ny_navn, "vekt": ny_vekt, "karbo": ny_karbo, "icon": ny_icon}
-                    st.session_state['standardvarer'].append(ny_regel)
-                    st.success(f"La til {ny_navn}!")
-                    st.rerun()
-                else:
-                    st.error("Du må skrive et navn.")
+        c1, c2 = st.columns(2)
+        # Vi bruker keys her for å kunne tømme dem senere
+        ny_navn = c1.text_input("Navn (f.eks. Bolle)", placeholder="Navn på matvare", key="input_navn")
+        ny_icon = c2.text_input("Emoji (f.eks. 🥐)", value="🍽️", key="input_icon")
+        
+        c3, c4 = st.columns(2)
+        ny_vekt = c3.text_input("Vekt-tekst (f.eks. 60g)", placeholder="Ca. vekt", key="input_vekt")
+        ny_karbo = c4.number_input("Karbo per stk (gram)", min_value=0.0, step=1.0, key="input_karbo")
+        
+        # Vanlig knapp, reagerer IKKE på Enter i tekstfeltene
+        if st.button("Lagre ny regel"):
+            if ny_navn:
+                ny_regel = {"navn": ny_navn, "vekt": ny_vekt, "karbo": ny_karbo, "icon": ny_icon}
+                st.session_state['standardvarer'].append(ny_regel)
+                st.success(f"La til {ny_navn}!")
+                
+                # Tøm feltene og oppdater siden
+                st.session_state['input_navn'] = ""
+                st.session_state['input_vekt'] = ""
+                st.session_state['input_icon'] = "🍽️"
+                st.session_state['input_karbo'] = 0.0
+                st.rerun()
+            else:
+                st.error("Du må skrive et navn.")
 
     st.markdown("---")
 
     # --- VISNING AV REGLER (GRID) ---
     cols = st.columns(2)
     
-    # Vi looper gjennom listen som nå ligger i HUKOMMELSEN (session_state)
     for i, vare in enumerate(st.session_state['standardvarer']):
         with cols[i % 2]:
             with st.container(border=True):
-                # Header uten anker-lenke
                 st.header(vare['icon'], anchor=False)
                 st.subheader(vare['navn'], anchor=False)
                 
                 st.caption(f"Vekt ca: {vare['vekt']}")
                 st.markdown(f"**= {vare['karbo']} g karbo**")
                 
-                # Knapperad: Legg til og Slett
                 c_add, c_del = st.columns([4, 1])
                 with c_add:
                     if st.button("Legg til", key=f"add_{i}", use_container_width=True):
@@ -225,7 +227,6 @@ with tab2:
                          })
                          st.rerun()
                 with c_del:
-                    # Slett-knapp (søppelbøtte)
                     if st.button("🗑️", key=f"del_{i}"):
                         st.session_state['standardvarer'].pop(i)
                         st.rerun()
