@@ -13,6 +13,23 @@ API_KEY = "9b0hY5ygaH5nvjPVmiFV50YiQAR76xb5jbirGmyK"
 if 'kurv' not in st.session_state:
     st.session_state['kurv'] = []
 
+# --- INITIALISER STANDARDVARER (NÅ MED HUKOMMELSE) ---
+# Vi legger listen her så den kan endres mens appen kjører
+if 'standardvarer' not in st.session_state:
+    st.session_state['standardvarer'] = [
+        {"navn": "Brødskive (Grov)", "vekt": "40g", "karbo": 16, "icon": "🍞"},
+        {"navn": "Knekkebrød (Wasa)", "vekt": "13g", "karbo": 8, "icon": "🍘"},
+        {"navn": "Potet (Medium)", "vekt": "85g", "karbo": 14, "icon": "🥔"},
+        {"navn": "Eple (Medium)", "vekt": "150g", "karbo": 15, "icon": "🍎"},
+        {"navn": "Banan (Medium)", "vekt": "120g", "karbo": 22, "icon": "🍌"},
+        {"navn": "Appelsin", "vekt": "200g", "karbo": 18, "icon": "🍊"},
+        {"navn": "Melk (1 glass)", "vekt": "2 dl", "karbo": 9, "icon": "🥛"},
+        {"navn": "Yoghurt (Beger)", "vekt": "150g", "karbo": 9, "icon": "🥣"},
+        {"navn": "Pizza (Grandiosa)", "vekt": "1/8 stk", "karbo": 28, "icon": "🍕"},
+        {"navn": "Ris (Porsjon)", "vekt": "150g", "karbo": 40, "icon": "🍚"},
+        {"navn": "Pasta (Porsjon)", "vekt": "150g", "karbo": 45, "icon": "🍝"},
+    ]
+
 # --- HJELPEFUNKSJONER ---
 def finn_antall_i_tekst(beskrivelse):
     if not beskrivelse: return None
@@ -36,23 +53,6 @@ def sok_kassalapp(sokeord):
         return response.json().get('data', [])
     except: return []
 
-# --- STANDARDVARER (MANUELL LISTE) ---
-def hent_standardvarer():
-    # Dette er tommelfingerregler. Juster gjerne verdiene!
-    return [
-        {"navn": "Brødskive (Grov)", "vekt": "40g", "karbo": 16, "icon": "🍞", "info": "En vanlig butikk-skive"},
-        {"navn": "Knekkebrød (Wasa)", "vekt": "13g", "karbo": 8, "icon": "🍘", "info": "Husman / Havre"},
-        {"navn": "Potet (Medium)", "vekt": "85g", "karbo": 14, "icon": "🥔", "info": "Kokt potet"},
-        {"navn": "Eple (Medium)", "vekt": "150g", "karbo": 15, "icon": "🍎", "info": "Granny Smith / Pink Lady"},
-        {"navn": "Banan (Medium)", "vekt": "120g", "karbo": 22, "icon": "🍌", "info": "Uten skall"},
-        {"navn": "Appelsin", "vekt": "200g", "karbo": 18, "icon": "🍊", "info": "En middels stor"},
-        {"navn": "Melk (1 glass)", "vekt": "2 dl", "karbo": 9, "icon": "🥛", "info": "Lettmelk/Helmelk"},
-        {"navn": "Yoghurt (Beger)", "vekt": "150g", "karbo": 9, "icon": "🥣", "info": "Naturell/Gresk (uten tilsatt sukker)"},
-        {"navn": "Pizza (Grandiosa bit)", "vekt": "1/8 stk", "karbo": 28, "icon": "🍕", "info": "Ett pizzastykke (vanlig størrelse)"},
-        {"navn": "Ris (Kokt porsjon)", "vekt": "150g", "karbo": 40, "icon": "🍚", "info": "En middels middagsporsjon"},
-        {"navn": "Pasta (Kokt porsjon)", "vekt": "150g", "karbo": 45, "icon": "🍝", "info": "En middels middagsporsjon"},
-    ]
-
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("⚙️ Innstillinger")
@@ -61,18 +61,21 @@ with st.sidebar:
         st.rerun()
     
     st.markdown("---")
+    # En knapp for å nullstille tommelfinger-reglene hvis man angrer på endringer
+    if st.button("🔄 Nullstill regler"):
+        del st.session_state['standardvarer']
+        st.rerun()
+        
+    st.markdown("---")
     st.header("💬 Kontakt")
     st.write("Fant du en feil eller har et ønske?")
     st.link_button("✍️ Send tilbakemelding", "https://forms.gle/xn1RnNAgcr1frzhr8")
     
-    st.markdown("---")
     with st.expander("ℹ️ Om dataene"):
         st.markdown("""
         **Kilder:**
         * 🌐 Kassalapp.no (Produktsøk)
         * 🔥 Egne BBQ-beregninger
-        
-        *Laget for insulinpumper.*
         """)
         
     st.info("Tips: Bruk 'Scan'-knappen på mobiltastaturet ditt i søkefeltet for å scanne strekkoder!")
@@ -80,7 +83,6 @@ with st.sidebar:
 # --- UI START ---
 st.title("🤖 Karbo-Robot")
 
-# --- FANE-SYSTEM ---
 tab1, tab2 = st.tabs(["🔍 Søk i butikk", "📏 Tommelfinger-regler"])
 
 # --- FANE 1: BUTIKK-SØK ---
@@ -119,8 +121,9 @@ with tab1:
             if valgt_nettvare_navn:
                 produkt = valg_liste[valgt_nettvare_navn]
                 navn = produkt['name']
-                beskrivelse = produkt.get('description', '')
                 ean_id = produkt.get('ean', 'ukjent')
+                beskrivelse = produkt.get('description', '')
+                
                 nutr = produkt.get('nutrition', [])
                 karbo_api = 0
                 for n in nutr:
@@ -173,39 +176,65 @@ with tab1:
 
 # --- FANE 2: TOMMELFINGER-REGLER ---
 with tab2:
-    st.header("📏 Hva inneholder 1 stk?", anchor=False) # FJERNET ANKER
-    st.caption("Gjennomsnittsverdier for vanlige matvarer. Kjekt når du ikke orker å veie!")
+    st.header("📏 Hva inneholder 1 stk?", anchor=False)
     
-    standardvarer = hent_standardvarer()
-    
-    # Vi lager et rutenett (grid) med 2 kolonner
+    # --- SKJEMA FOR Å LEGGE TIL NY VARE ---
+    with st.expander("➕ Legg til ny tommelfinger-regel"):
+        with st.form("ny_regel_form"):
+            c1, c2 = st.columns(2)
+            ny_navn = c1.text_input("Navn (f.eks. Bolle)", placeholder="Navn på matvare")
+            ny_icon = c2.text_input("Emoji (f.eks. 🥐)", value="🍽️")
+            
+            c3, c4 = st.columns(2)
+            ny_vekt = c3.text_input("Vekt-tekst (f.eks. 60g)", placeholder="Ca. vekt")
+            ny_karbo = c4.number_input("Karbo per stk (gram)", min_value=0.0, step=1.0)
+            
+            if st.form_submit_button("Lagre ny regel"):
+                if ny_navn:
+                    ny_regel = {"navn": ny_navn, "vekt": ny_vekt, "karbo": ny_karbo, "icon": ny_icon}
+                    st.session_state['standardvarer'].append(ny_regel)
+                    st.success(f"La til {ny_navn}!")
+                    st.rerun()
+                else:
+                    st.error("Du må skrive et navn.")
+
+    st.markdown("---")
+
+    # --- VISNING AV REGLER (GRID) ---
     cols = st.columns(2)
     
-    for i, vare in enumerate(standardvarer):
-        # Annenhver vare i venstre/høyre kolonne
+    # Vi looper gjennom listen som nå ligger i HUKOMMELSEN (session_state)
+    for i, vare in enumerate(st.session_state['standardvarer']):
         with cols[i % 2]:
             with st.container(border=True):
-                # ENDRING HER: Bruker st.header() med anchor=False for å slippe lenke-ikonet
+                # Header uten anker-lenke
                 st.header(vare['icon'], anchor=False)
                 st.subheader(vare['navn'], anchor=False)
                 
                 st.caption(f"Vekt ca: {vare['vekt']}")
                 st.markdown(f"**= {vare['karbo']} g karbo**")
                 
-                if st.button(f"➕ Legg til", key=f"std_{i}"):
-                     st.session_state['kurv'].append({
-                         "navn": vare['navn'], 
-                         "beskrivelse": f"1 stk/porsjon ({vare['vekt']})", 
-                         "karbo": vare['karbo']
-                     })
-                     st.rerun()
+                # Knapperad: Legg til og Slett
+                c_add, c_del = st.columns([4, 1])
+                with c_add:
+                    if st.button("Legg til", key=f"add_{i}", use_container_width=True):
+                         st.session_state['kurv'].append({
+                             "navn": vare['navn'], 
+                             "beskrivelse": f"1 stk/porsjon ({vare['vekt']})", 
+                             "karbo": vare['karbo']
+                         })
+                         st.rerun()
+                with c_del:
+                    # Slett-knapp (søppelbøtte)
+                    if st.button("🗑️", key=f"del_{i}"):
+                        st.session_state['standardvarer'].pop(i)
+                        st.rerun()
 
-# --- KURV (FELLES FOR BEGGE FANER) ---
+# --- KURV (FELLES) ---
 st.markdown("---")
-st.header("🍽️ Dagens Måltid", anchor=False) # FJERNET ANKER HER OGSÅ
+st.header("🍽️ Dagens Måltid", anchor=False)
 
 if st.session_state['kurv']:
-    # Sjekk brødmat
     har_brødmat = any(x in str(st.session_state['kurv']).lower() for x in ['brød', 'rundstykke', 'knekke'])
     if har_brødmat:
         st.info("🍞 Tips: Ost, skinke og egg er karbofritt. Brunost og syltetøy må telles!")
