@@ -13,90 +13,73 @@ API_KEY = "9b0hY5ygaH5nvjPVmiFV50YiQAR76xb5jbirGmyK"
 if 'kurv' not in st.session_state:
     st.session_state['kurv'] = []
 
-# --- INITIALISER STANDARDVARER (FRA DIN FIL) ---
+# --- INITIALISER STANDARDVARER (MED KATEGORIER) ---
 if 'standardvarer' not in st.session_state:
     st.session_state['standardvarer'] = [
-        # --- BRØD & KNEKKEBRØD 🍞 ---
-        {"navn": "Grovbrød", "vekt": "1 skive (35g)", "karbo": 15, "icon": "🍞"},
-        {"navn": "Loff", "vekt": "1 skive (30g)", "karbo": 15, "icon": "🍞"},
-        {"navn": "Pumpernikkel", "vekt": "1 skive (65g)", "karbo": 25, "icon": "🍞"},
-        {"navn": "Lavkarbo-brød", "vekt": "1 skive (40g)", "karbo": 5, "icon": "🍞"},
-        {"navn": "Knekkebrød", "vekt": "1 stk (15g)", "karbo": 10, "icon": "🍘"},
-        {"navn": "FiberPlus / Ryvita", "vekt": "1 stk (9g)", "karbo": 5, "icon": "🍘"},
-        {"navn": "Rundstykke", "vekt": "1 stk (60g)", "karbo": 30, "icon": "🥯"},
-        {"navn": "Polarbrød", "vekt": "1 stk (40g)", "karbo": 15, "icon": "🫓"},
-        {"navn": "Pitabrød", "vekt": "1 stk (80g)", "karbo": 35, "icon": "🫓"},
-        {"navn": "Hamburgerbrød", "vekt": "1 stk (60g)", "karbo": 30, "icon": "🍔"},
-        {"navn": "Pølsebrød (lite)", "vekt": "1 stk (30g)", "karbo": 15, "icon": "🌭"},
-        {"navn": "Pølsebrød (stort)", "vekt": "1 stk (50g)", "karbo": 25, "icon": "🌭"},
-        {"navn": "Lompe / Lefse", "vekt": "1 stk (30g)", "karbo": 10, "icon": "🌮"},
-        {"navn": "Tortilla (liten)", "vekt": "1 stk (40g)", "karbo": 20, "icon": "🌯"},
-        {"navn": "Tortilla (stor)", "vekt": "1 stk (60g)", "karbo": 30, "icon": "🌯"},
-        {"navn": "Tacoskjell", "vekt": "1 stk (10g)", "karbo": 5, "icon": "🌮"},
-        {"navn": "Foccacia", "vekt": "1 stk (130g)", "karbo": 58, "icon": "🍞"},
-        {"navn": "Croissant", "vekt": "1 stk (90g)", "karbo": 34, "icon": "🥐"},
-        {"navn": "Naan / Chapati", "vekt": "1 stk (40g)", "karbo": 20, "icon": "🫓"},
+        # --- BRØD & KNEKKEBRØD ---
+        {"kategori": "Brød & Bakst", "navn": "Grovbrød", "vekt": "1 skive (35g)", "karbo": 15, "icon": "🍞"},
+        {"kategori": "Brød & Bakst", "navn": "Loff", "vekt": "1 skive (30g)", "karbo": 15, "icon": "🍞"},
+        {"kategori": "Brød & Bakst", "navn": "Knekkebrød", "vekt": "1 stk (15g)", "karbo": 10, "icon": "🍘"},
+        {"kategori": "Brød & Bakst", "navn": "Rundstykke", "vekt": "1 stk (60g)", "karbo": 30, "icon": "🥯"},
+        {"kategori": "Brød & Bakst", "navn": "Polarbrød", "vekt": "1 stk (40g)", "karbo": 15, "icon": "🫓"},
+        {"kategori": "Brød & Bakst", "navn": "Pølsebrød", "vekt": "1 stk (30g)", "karbo": 15, "icon": "🌭"},
+        {"kategori": "Brød & Bakst", "navn": "Hamburgerbrød", "vekt": "1 stk (60g)", "karbo": 30, "icon": "🍔"},
+        {"kategori": "Brød & Bakst", "navn": "Lompe", "vekt": "1 stk (30g)", "karbo": 10, "icon": "🌮"},
+        {"kategori": "Brød & Bakst", "navn": "Tortilla (stor)", "vekt": "1 stk (60g)", "karbo": 30, "icon": "🌯"},
 
-        # --- FROKOST & GRØT 🥣 ---
-        {"navn": "Havregryn", "vekt": "1 dl (40g)", "karbo": 25, "icon": "🌾"},
-        {"navn": "Havregrøt (ferdig)", "vekt": "1 porsjon (350g)", "karbo": 25, "icon": "🥣"},
-        {"navn": "Cornflakes", "vekt": "1 dl (15g)", "karbo": 10, "icon": "🥣"},
-        {"navn": "Cheerios", "vekt": "1 porsjon (30g)", "karbo": 20, "icon": "🥣"},
-        {"navn": "Granola / Müsli", "vekt": "1 dl (50g)", "karbo": 30, "icon": "🥣"},
-        {"navn": "Weetabix", "vekt": "1 stk (20g)", "karbo": 10, "icon": "🌾"},
+        # --- FROKOST & GRØT ---
+        {"kategori": "Frokost & Grøt", "navn": "Havregryn", "vekt": "1 dl (40g)", "karbo": 25, "icon": "🌾"},
+        {"kategori": "Frokost & Grøt", "navn": "Havregrøt (ferdig)", "vekt": "1 porsjon", "karbo": 25, "icon": "🥣"},
+        {"kategori": "Frokost & Grøt", "navn": "Cornflakes", "vekt": "1 dl (15g)", "karbo": 10, "icon": "🥣"},
+        {"kategori": "Frokost & Grøt", "navn": "Müsli / Granola", "vekt": "1 dl (50g)", "karbo": 30, "icon": "🥣"},
 
-        # --- PÅLEGG & TILBEHØR 🍯 ---
-        {"navn": "Syltetøy", "vekt": "1 ts (10g)", "karbo": 5, "icon": "🍓"},
-        {"navn": "Brunost", "vekt": "1 skive (15g)", "karbo": 5, "icon": "🧀"},
-        {"navn": "Sjokoladepålegg", "vekt": "1 ts (10g)", "karbo": 5, "icon": "🍫"},
-        {"navn": "Honning", "vekt": "1 ts (10g)", "karbo": 5, "icon": "🍯"},
-        {"navn": "Prim", "vekt": "1 ts (10g)", "karbo": 5, "icon": "🧀"},
+        # --- PÅLEGG ---
+        {"kategori": "Pålegg", "navn": "Syltetøy", "vekt": "1 ts", "karbo": 5, "icon": "🍓"},
+        {"kategori": "Pålegg", "navn": "Brunost", "vekt": "1 skive", "karbo": 5, "icon": "🧀"},
+        {"kategori": "Pålegg", "navn": "Sjokopålegg", "vekt": "1 ts", "karbo": 5, "icon": "🍫"},
+        {"kategori": "Pålegg", "navn": "Honning", "vekt": "1 ts", "karbo": 5, "icon": "🍯"},
 
-        # --- YOGHURT & MEIERI 🥛 ---
-        {"navn": "Melk", "vekt": "1 glass (2dl)", "karbo": 10, "icon": "🥛"},
-        {"navn": "Skolemelk / Kakao", "vekt": "1 kartong", "karbo": 15, "icon": "🧃"},
-        {"navn": "Biola", "vekt": "1 glass (2dl)", "karbo": 20, "icon": "🥛"},
-        {"navn": "Yoghurt (Naturell)", "vekt": "1 dl", "karbo": 5, "icon": "🥣"},
-        {"navn": "Yoghurt (Frukt)", "vekt": "1 beger", "karbo": 20, "icon": "🍓"},
-        {"navn": "Go'morgen", "vekt": "1 beger", "karbo": 30, "icon": "🥣"},
-        {"navn": "Skyr / Kesam", "vekt": "1 beger", "karbo": 10, "icon": "🥣"},
+        # --- MEIERI & YOGHURT ---
+        {"kategori": "Meieri & Yoghurt", "navn": "Melk", "vekt": "1 glass (2dl)", "karbo": 10, "icon": "🥛"},
+        {"kategori": "Meieri & Yoghurt", "navn": "Sjokomelk", "vekt": "1 kartong", "karbo": 15, "icon": "🧃"},
+        {"kategori": "Meieri & Yoghurt", "navn": "Yoghurt (Naturell)", "vekt": "1 dl", "karbo": 5, "icon": "🥣"},
+        {"kategori": "Meieri & Yoghurt", "navn": "Yoghurt (Frukt)", "vekt": "1 beger", "karbo": 20, "icon": "🍓"},
+        {"kategori": "Meieri & Yoghurt", "navn": "Go'morgen", "vekt": "1 beger", "karbo": 30, "icon": "🥣"},
 
-        # --- MIDDAG & FASTFOOD 🍕 ---
-        {"navn": "Grandiosa Pizza", "vekt": "1 porsjon", "karbo": 30, "icon": "🍕"},
-        {"navn": "Pasta (kokt)", "vekt": "1 porsjon (ca 150g)", "karbo": 45, "icon": "🍝"},
-        {"navn": "Ris (kokt)", "vekt": "1 porsjon (ca 150g)", "karbo": 40, "icon": "🍚"},
-        {"navn": "Potet (kokt)", "vekt": "1 stk (70g)", "karbo": 10, "icon": "🥔"},
-        {"navn": "Potetmos (pose)", "vekt": "1 pose", "karbo": 70, "icon": "🥔"},
-        {"navn": "Pølse (Wiener/Grill)", "vekt": "1 stk", "karbo": 4, "icon": "🌭"},
-        {"navn": "Hamburger", "vekt": "1 stk", "karbo": 35, "icon": "🍔"},
-        {"navn": "Pommes Frites", "vekt": "1 porsjon", "karbo": 40, "icon": "🍟"},
-        {"navn": "Kebab", "vekt": "1 stk", "karbo": 60, "icon": "🥙"},
-        {"navn": "Sushi", "vekt": "1 bit", "karbo": 6, "icon": "🍣"},
-        {"navn": "Suppe (Rett i koppen)", "vekt": "1 pose", "karbo": 12, "icon": "🍜"},
-        {"navn": "Saus (Brun/Hvit)", "vekt": "1 dl", "karbo": 5, "icon": "🥣"},
+        # --- MIDDAG ---
+        {"kategori": "Middag", "navn": "Grandiosa", "vekt": "1 porsjon", "karbo": 30, "icon": "🍕"},
+        {"kategori": "Middag", "navn": "Pasta (kokt)", "vekt": "1 porsjon", "karbo": 45, "icon": "🍝"},
+        {"kategori": "Middag", "navn": "Ris (kokt)", "vekt": "1 porsjon", "karbo": 40, "icon": "🍚"},
+        {"kategori": "Middag", "navn": "Potet (kokt)", "vekt": "1 stk (70g)", "karbo": 10, "icon": "🥔"},
+        {"kategori": "Middag", "navn": "Pølse i brød", "vekt": "1 stk", "karbo": 20, "icon": "🌭"},
+        {"kategori": "Middag", "navn": "Hamburger", "vekt": "1 stk", "karbo": 35, "icon": "🍔"},
+        {"kategori": "Middag", "navn": "Pommes Frites", "vekt": "1 porsjon", "karbo": 40, "icon": "🍟"},
+        {"kategori": "Middag", "navn": "Kebab", "vekt": "1 stk", "karbo": 60, "icon": "🥙"},
+        {"kategori": "Middag", "navn": "Sushi", "vekt": "1 bit", "karbo": 6, "icon": "🍣"},
+        {"kategori": "Middag", "navn": "Suppe (Pose)", "vekt": "1 porsjon", "karbo": 15, "icon": "🍜"},
 
-        # --- FRUKT & GRØNT 🍎 ---
-        {"navn": "Eple / Pære", "vekt": "1 stk", "karbo": 15, "icon": "🍎"},
-        {"navn": "Banan", "vekt": "1 stk", "karbo": 22, "icon": "🍌"},
-        {"navn": "Appelsin", "vekt": "1 stk", "karbo": 18, "icon": "🍊"},
-        {"navn": "Druer (neve)", "vekt": "1 neve", "karbo": 15, "icon": "🍇"},
-        {"navn": "Mais (boks)", "vekt": "1 liten boks", "karbo": 25, "icon": "🌽"},
+        # --- FRUKT & GRØNT ---
+        {"kategori": "Frukt & Grønt", "navn": "Eple / Pære", "vekt": "1 stk", "karbo": 15, "icon": "🍎"},
+        {"kategori": "Frukt & Grønt", "navn": "Banan", "vekt": "1 stk", "karbo": 22, "icon": "🍌"},
+        {"kategori": "Frukt & Grønt", "navn": "Appelsin", "vekt": "1 stk", "karbo": 18, "icon": "🍊"},
+        {"kategori": "Frukt & Grønt", "navn": "Druer", "vekt": "1 neve", "karbo": 15, "icon": "🍇"},
+        {"kategori": "Frukt & Grønt", "navn": "Mais", "vekt": "1 liten boks", "karbo": 25, "icon": "🌽"},
 
-        # --- KAKER & SNACKS 🍪 ---
-        {"navn": "Muffins", "vekt": "1 stk", "karbo": 35, "icon": "🧁"},
-        {"navn": "Bolle", "vekt": "1 stk", "karbo": 30, "icon": "🥯"},
-        {"navn": "Wienerbrød", "vekt": "1 stk", "karbo": 25, "icon": "🥨"},
-        {"navn": "Vaffel", "vekt": "1 plate", "karbo": 25, "icon": "🧇"},
-        {"navn": "Pannekake", "vekt": "1 stk", "karbo": 18, "icon": "🥞"},
-        {"navn": "Sjokoladekake", "vekt": "1 stykke", "karbo": 25, "icon": "🍰"},
-        {"navn": "Is (Pinup/Krone)", "vekt": "1 stk", "karbo": 25, "icon": "🍦"},
-        {"navn": "Potetgull", "vekt": "1 porsjon (50g)", "karbo": 25, "icon": "🍿"},
-        {"navn": "Sjokolade", "vekt": "1 stripe/bar", "karbo": 20, "icon": "🍫"},
+        # --- KAKER & SNACKS ---
+        {"kategori": "Kaker & Snacks", "navn": "Muffins", "vekt": "1 stk", "karbo": 35, "icon": "🧁"},
+        {"kategori": "Kaker & Snacks", "navn": "Bolle", "vekt": "1 stk", "karbo": 30, "icon": "🥯"},
+        {"kategori": "Kaker & Snacks", "navn": "Wienerbrød", "vekt": "1 stk", "karbo": 25, "icon": "🥨"},
+        {"kategori": "Kaker & Snacks", "navn": "Vaffel", "vekt": "1 plate", "karbo": 25, "icon": "🧇"},
+        {"kategori": "Kaker & Snacks", "navn": "Pannekake", "vekt": "1 stk", "karbo": 18, "icon": "🥞"},
+        {"kategori": "Kaker & Snacks", "navn": "Sjokoladekake", "vekt": "1 stykke", "karbo": 25, "icon": "🍰"},
+        {"kategori": "Kaker & Snacks", "navn": "Is (Pinup)", "vekt": "1 stk", "karbo": 25, "icon": "🍦"},
+        {"kategori": "Kaker & Snacks", "navn": "Potetgull", "vekt": "1 porsjon", "karbo": 25, "icon": "🍿"},
+        {"kategori": "Kaker & Snacks", "navn": "Sjokolade", "vekt": "1 bar", "karbo": 20, "icon": "🍫"},
         
-        # --- DRIKKE 🥤 ---
-        {"navn": "Brus / Juice", "vekt": "1 glass (2dl)", "karbo": 20, "icon": "🥤"},
-        {"navn": "Energidrikk", "vekt": "1 boks (5dl)", "karbo": 55, "icon": "⚡"},
-        {"navn": "Iskaffe", "vekt": "1 kartong", "karbo": 25, "icon": "☕"},
+        # --- DRIKKE ---
+        {"kategori": "Drikke", "navn": "Brus / Juice", "vekt": "1 glass (2dl)", "karbo": 20, "icon": "🥤"},
+        {"kategori": "Drikke", "navn": "Energidrikk", "vekt": "1 boks", "karbo": 55, "icon": "⚡"},
+        {"kategori": "Drikke", "navn": "Iskaffe", "vekt": "1 kartong", "karbo": 25, "icon": "☕"},
     ]
 
 # --- HJELPEFUNKSJONER ---
@@ -117,11 +100,19 @@ def lagre_ny_regel():
     vekt = st.session_state.input_vekt
     karbo = st.session_state.input_karbo
     icon = st.session_state.input_icon
+    kategori = st.session_state.input_kategori # Nytt felt!
 
     if navn:
-        ny_regel = {"navn": navn, "vekt": vekt, "karbo": karbo, "icon": icon}
+        ny_regel = {
+            "kategori": kategori,
+            "navn": navn, 
+            "vekt": vekt, 
+            "karbo": karbo, 
+            "icon": icon
+        }
         st.session_state['standardvarer'].append(ny_regel)
         
+        # Tøm feltene
         st.session_state.input_navn = ""
         st.session_state.input_vekt = ""
         st.session_state.input_karbo = 0.0
@@ -147,7 +138,6 @@ with st.sidebar:
     
     st.markdown("---")
     if st.button("🔄 Nullstill regler"):
-        # Denne nullstiller til den hardkodede listen ved omstart
         if 'standardvarer' in st.session_state:
             del st.session_state['standardvarer']
         st.rerun()
@@ -162,6 +152,7 @@ with st.sidebar:
         **Kilder:**
         * 🌐 Kassalapp.no (Produktsøk)
         * 🔥 Egne BBQ-beregninger
+        * 📁 Karbo-tabell for diabetikere
         """)
         
     st.info("Tips: Bruk 'Scan'-knappen på mobiltastaturet ditt i søkefeltet for å scanne strekkoder!")
@@ -263,7 +254,24 @@ with tab1:
 # --- FANE 2: TOMMELFINGER-REGLER ---
 with tab2:
     st.header("📏 Hva inneholder 1 stk?", anchor=False)
+
+    # --- HENT ALLE UNIKE KATEGORIER ---
+    alle_varer = st.session_state['standardvarer']
+    unike_kategorier = sorted(list(set([v.get('kategori', 'Annet') for v in alle_varer])))
+    unike_kategorier.insert(0, "Alle") # Legg til "Alle" valget øverst
     
+    # --- KATEGORI-VELGER ---
+    valgt_kategori = st.selectbox("📂 Velg kategori:", unike_kategorier)
+
+    # --- FILTRER LISTEN ---
+    if valgt_kategori == "Alle":
+        vis_varer = alle_varer
+    else:
+        vis_varer = [v for v in alle_varer if v.get('kategori') == valgt_kategori]
+
+    st.markdown("---")
+    
+    # --- SKJEMA FOR Å LEGGE TIL NY VARE ---
     with st.expander("➕ Legg til ny tommelfinger-regel"):
         c1, c2 = st.columns(2)
         c1.text_input("Navn (f.eks. Bolle)", placeholder="Navn på matvare", key="input_navn")
@@ -272,33 +280,39 @@ with tab2:
         c3, c4 = st.columns(2)
         c3.text_input("Vekt-tekst (f.eks. 60g)", placeholder="Ca. vekt", key="input_vekt")
         c4.number_input("Karbo per stk (gram)", min_value=0.0, step=1.0, key="input_karbo")
+        
+        # Velg hvilken kategori den nye tingen skal ha
+        st.selectbox("Kategori", unike_kategorier[1:], key="input_kategori") # Hopper over "Alle"
+        
         st.button("Lagre ny regel", on_click=lagre_ny_regel)
-
-    st.markdown("---")
 
     # --- VISNING AV REGLER (GRID) ---
     cols = st.columns(2)
     
-    for i, vare in enumerate(st.session_state['standardvarer']):
+    if not vis_varer:
+        st.info("Ingen varer i denne kategorien ennå.")
+    
+    for i, vare in enumerate(vis_varer):
         with cols[i % 2]:
             with st.container(border=True):
                 st.header(vare['icon'], anchor=False)
                 st.subheader(vare['navn'], anchor=False)
+                st.caption(f"{vare.get('kategori', 'Annet')}") # Viser kategorien
                 
                 std_vekt = vare['vekt']
                 std_karbo = vare['karbo']
                 
-                st.caption(f"Standard: {std_vekt}")
+                st.markdown(f"**Vekt:** {std_vekt}")
                 st.markdown(f"**= {std_karbo} g karbo**")
                 
                 # --- MINIKALKULATOR ---
                 with st.expander("🧮 Endre mengde?"):
-                    faktor = st.number_input("Antall / Porsjoner:", min_value=0.1, value=1.0, step=0.5, key=f"calc_{i}")
+                    faktor = st.number_input("Antall / Porsjoner:", min_value=0.1, value=1.0, step=0.5, key=f"calc_{i}_{vare['navn']}")
                     ny_karbo = std_karbo * faktor
                     
                     st.write(f"{faktor} x {std_karbo}g = **{ny_karbo:.1f} g**")
                     
-                    if st.button("Legg til dette", key=f"add_calc_{i}"):
+                    if st.button("Legg til dette", key=f"add_calc_{i}_{vare['navn']}"):
                          st.session_state['kurv'].append({
                              "navn": vare['navn'], 
                              "beskrivelse": f"{faktor} stk/porsj ({std_vekt})", 
@@ -309,7 +323,7 @@ with tab2:
                 # --- HURTIGKNAPPER ---
                 c_add, c_del = st.columns([4, 1])
                 with c_add:
-                    if st.button("1 stk", key=f"add_{i}", use_container_width=True):
+                    if st.button("1 stk", key=f"add_{i}_{vare['navn']}", use_container_width=True):
                          st.session_state['kurv'].append({
                              "navn": vare['navn'], 
                              "beskrivelse": f"1 stk/porsj ({std_vekt})", 
@@ -317,8 +331,9 @@ with tab2:
                          })
                          st.rerun()
                 with c_del:
-                    if st.button("🗑️", key=f"del_{i}"):
-                        st.session_state['standardvarer'].pop(i)
+                    # Vi må finne indeksen i hovedlisten for å slette riktig (siden vi filtrerer)
+                    if st.button("🗑️", key=f"del_{i}_{vare['navn']}"):
+                        st.session_state['standardvarer'].remove(vare)
                         st.rerun()
 
 # --- KURV (FELLES) ---
