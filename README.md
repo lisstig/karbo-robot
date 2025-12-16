@@ -1,48 +1,40 @@
 # 🤖 Karbo-Robot
 
-**Din smarte assistent for karbohydrattelling – søk direkte i norske dagligvarer.**
+**Din digitale assistent for karbohydrattelling og insulinberegning.**
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)]https://karbo-robot-scqkaigsbowcy87ijqczdy.streamlit.app/
+Karbo-Robot er utviklet for å gjøre hverdagen enklere for diabetikere og insulinpumpe-brukere. Appen kombinerer et søk i tusenvis av norske dagligvarer med en omfattende database over "tommelfinger-regler" for matvarer uten strekkode.
 
-## 📖 Hva er dette?
-Karbo-Robot er en rask web-app utviklet for å gjøre hverdagen enklere for oss med diabetes type 1 (spesielt tilpasset insulinpumper som MiniMed 780G, Tandem eller Omnipod).
+🔗 **[Klikk her for å åpne appen](https://karbo-robot.streamlit.app)** (Bytt ut med din lenke hvis den er annerledes)
 
-I stedet for å gjette, søker denne roboten direkte i databasen til **Kassalapp.no** for å finne karbohydratinnhold på varene du kjøper i butikken.
+## ✨ Hovedfunksjoner
 
-## ✨ Nøkkelfunksjoner
+### 1. 📏 Tommelfinger-regler (Hjertet i appen)
+En stor, innebygd database med over 100 vanlige matvarer som ofte spises, men som er vanskelige å skanne (f.eks. en brødskive, en porsjon ris, frukt eller bakst).
+* **Kategorisert:** Sortert i grupper som *Middag*, *Brød & Bakst*, *Snacks*, *Drikke* osv.
+* **Minikalkulator:** Endre mengde direkte på kortet (f.eks. endre fra "1 glass" til "1.5 glass") og få karbohydratene regnet ut automatisk.
+* **Legg til egne:** Du kan opprette midlertidige matvarer i listen hvis du mangler noe.
 
-### 1. 🌐 Smart Produktsøk
-Søk på "Gilde Grillpølse" eller "Wasa", og appen henter:
-* Næringsinnhold direkte fra butikkhyllene.
-* **Tekst-detektiv:** Appen leser produktbeskrivelsen og finner automatisk ut hvor mange pølser/brød det er i pakken (f.eks. "6 stk").
+### 2. 🔍 Butikksøk (Via Kassalapp.no)
+Søk i tusenvis av norske dagligvarer for å finne nøyaktig næringsinnhold.
+* **Strekkodesøk:** Bruk mobilen til å skanne EAN-koden direkte i søkefeltet.
+* **Smart filtrering:** Appen rydder automatisk bort duplikater (f.eks. samme pølse fra 3 forskjellige butikker) for en renere liste.
+* **Detaljert info:** Ser karbohydrater per 100g, vekt på varen, og utregning per porsjon.
 
-### 2. 🌭 "Pølse-matematikk"
-Slutt å regne i hodet. Appen vet at du ikke spiser "120g pølse", men "2 stk".
-* Den regner om fra *Totalvekt* og *Antall i pakke* til **karbohydrater per stykk**.
-
-### 3. 🧀 Smarte Tips
-* **Påleggs-hjelper:** Legger du til brød eller knekkebrød? Appen gir deg en huskeregel på hvilke pålegg som har karbohydrater (brunost, syltetøy) og hvilke som er "gratis" (ost, skinke).
-
-### 4. 🛒 Måltidskurv
-Sett sammen hele middagen:
-* Legg til pølser + brød + potetsalat.
-* Få **én totalsum** nederst som du taster rett inn i pumpa.
-
-### 5. 🔥 BBQ-Modus
-For oss som er glad i grillmat! Egen knapp for å legge til standard BBQ-tillegg (glaze/rub) på kjøtt.
-
-## ℹ️ Datakilder
-* **Produktsøk:** [Kassalapp.no](https://kassalapp.no) sitt API.
-* **Logikk:** Egne beregninger for stykk-vekt og BBQ-tillegg.
-
-## ⚠️ Ansvarsfraskrivelse
-Dette verktøyet er utviklet som et privat hjelpemiddel ("Open Source").
-* Appen er et supplement til egen kunnskap.
-* **Sjekk alltid emballasjen** hvis du er usikker – produsenter kan endre innhold.
-* Utvikler tar ikke ansvar for eventuelle feilberegninger eller medisinsk dosering.
-
-## 🛠️ Teknisk info
-Laget med Python og [Streamlit](https://streamlit.io).
+### 3. 🍽️ Måltidsbygger
+Alt du velger (både fra butikksøk og tommelfinger-regler) havner i en felles **"Dagens Måltid"**-kurv nederst.
+* Full oversikt over alt du skal spise.
+* **Total sum:** Viser nøyaktig hvor mange gram karbohydrater du skal plotte inn i insulinpumpen.
 
 ---
-*Laget for en enklere hverdag med insulinpumpe.*
+
+## 🛠️ Teknisk info
+Appen er bygget med **Python** og **Streamlit**.
+
+* **API:** Bruker [Kassalapp.no](https://kassalapp.no) sitt API for sanntidsdata om dagligvarer.
+* **Database:** Inneholder en hardkodet, strukturert database basert på offisielle karbohydrat-lister og erfaringsbaserte data.
+
+## ⚠️ Ansvarsfraskrivelse
+*Dette verktøyet er ment som en hjelp i hverdagen. Dobbeltsjekk alltid verdiene mot emballasje eller egne erfaringer ved dosering av insulin.*
+
+---
+*Laget med ❤️ for en enklere diabetes-hverdag.*
