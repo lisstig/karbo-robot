@@ -41,9 +41,8 @@ def finn_antall_i_tekst(beskrivelse):
             return tall
     return None
 
-# --- NY FUNKSJON FOR Å LAGRE REGLER (CALLBACK) ---
+# --- CALLBACK FOR Å LAGRE REGLER ---
 def lagre_ny_regel():
-    # Henter verdiene fra tekstboksene
     navn = st.session_state.input_navn
     vekt = st.session_state.input_vekt
     karbo = st.session_state.input_karbo
@@ -53,14 +52,10 @@ def lagre_ny_regel():
         ny_regel = {"navn": navn, "vekt": vekt, "karbo": karbo, "icon": icon}
         st.session_state['standardvarer'].append(ny_regel)
         
-        # Her tømmer vi feltene FØR siden tegnes på nytt - det er trygt!
         st.session_state.input_navn = ""
         st.session_state.input_vekt = ""
         st.session_state.input_karbo = 0.0
         st.session_state.input_icon = "🍽️"
-    else:
-        # Hvis navn mangler, gjør vi ingenting (brukeren ser at ingenting skjedde)
-        pass
 
 @st.cache_data(show_spinner=False) 
 def sok_kassalapp(sokeord):
@@ -199,15 +194,12 @@ with tab2:
     
     with st.expander("➕ Legg til ny tommelfinger-regel"):
         c1, c2 = st.columns(2)
-        # Vi oppretter feltene, men logikken for lagring skjer nå i 'lagre_ny_regel' funksjonen
         c1.text_input("Navn (f.eks. Bolle)", placeholder="Navn på matvare", key="input_navn")
         c2.text_input("Emoji (f.eks. 🥐)", value="🍽️", key="input_icon")
         
         c3, c4 = st.columns(2)
         c3.text_input("Vekt-tekst (f.eks. 60g)", placeholder="Ca. vekt", key="input_vekt")
         c4.number_input("Karbo per stk (gram)", min_value=0.0, step=1.0, key="input_karbo")
-        
-        # VIKTIG: Vi bruker 'on_click' for å kjøre lagre-funksjonen FØR appen laster på nytt.
         st.button("Lagre ny regel", on_click=lagre_ny_regel)
 
     st.markdown("---")
@@ -221,16 +213,38 @@ with tab2:
                 st.header(vare['icon'], anchor=False)
                 st.subheader(vare['navn'], anchor=False)
                 
-                st.caption(f"Vekt ca: {vare['vekt']}")
-                st.markdown(f"**= {vare['karbo']} g karbo**")
+                std_vekt = vare['vekt']
+                std_karbo = vare['karbo']
                 
-                c_add, c_del = st.columns([4, 1])
-                with c_add:
-                    if st.button("Legg til", key=f"add_{i}", use_container_width=True):
+                st.caption(f"Standard: {std_vekt}")
+                st.markdown(f"**= {std_karbo} g karbo**")
+                
+                # --- NY MINIKALKULATOR ---
+                with st.expander("🧮 Endre mengde?"):
+                    # Her kan man endre antall. F.eks. 1.5 bananer eller 2 glass melk.
+                    # Standard er 1.0 (altså det som står på kortet)
+                    faktor = st.number_input("Antall / Porsjoner:", min_value=0.1, value=1.0, step=0.5, key=f"calc_{i}")
+                    ny_karbo = std_karbo * faktor
+                    
+                    st.write(f"{faktor} x {std_karbo}g = **{ny_karbo:.1f} g**")
+                    
+                    if st.button("Legg til dette", key=f"add_calc_{i}"):
                          st.session_state['kurv'].append({
                              "navn": vare['navn'], 
-                             "beskrivelse": f"1 stk/porsjon ({vare['vekt']})", 
-                             "karbo": vare['karbo']
+                             "beskrivelse": f"{faktor} stk/porsj ({std_vekt})", 
+                             "karbo": ny_karbo
+                         })
+                         st.rerun()
+
+                # --- HURTIGKNAPPER ---
+                c_add, c_del = st.columns([4, 1])
+                with c_add:
+                    # Legger til 1 standard enhet
+                    if st.button("1 stk", key=f"add_{i}", use_container_width=True):
+                         st.session_state['kurv'].append({
+                             "navn": vare['navn'], 
+                             "beskrivelse": f"1 stk/porsj ({std_vekt})", 
+                             "karbo": std_karbo
                          })
                          st.rerun()
                 with c_del:
