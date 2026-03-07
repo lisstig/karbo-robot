@@ -4,7 +4,7 @@
 
 Karbo-Robot er utviklet for å gjøre hverdagen enklere for diabetikere og insulinpumpe-brukere. Appen kombinerer et søk i tusenvis av norske dagligvarer med en omfattende database over "tommelfinger-regler" for matvarer uten strekkode.
 
-🔗 **[Klikk her for å åpne appen](https://karbo-robot.streamlit.app)** (Bytt ut med din lenke hvis den er annerledes)
+🔗 **[Klikk her for å åpne appen](https://karbo-robot-scqkaigsbowcy87ijqczdy.streamlit.app)** (Bytt ut med din lenke hvis den er annerledes)
 
 ## ✨ Hovedfunksjoner
 
